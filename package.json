@@ -1,0 +1,32 @@
+{
+  "name": "mumbling-toad",
+  "version": "1.0.0",
+  "description": "SEO Crawler TUI",
+  "type": "module",
+  "main": "dist/cli.js",
+  "scripts": {
+    "dev": "tsx src/cli.tsx",
+    "build": "tsup src/cli.tsx --format esm --dts",
+    "start": "node dist/cli.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "packageManager": "pnpm@10.27.0",
+  "dependencies": {
+    "ink": "^4.4.1",
+    "react": "^18.2.0",
+    "@types/react": "^18.2.0",
+    "@inkjs/ui": "^2.0.0",
+    "crawlee": "^3.5.0",
+    "meow": "^13.0.0",
+    "csv-stringify": "^6.4.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.2.0",
+    "tsx": "^4.7.0",
+    "tsup": "^8.0.0",
+    "@sindresorhus/tsconfig": "^5.0.0",
+    "@types/node": "^20.10.0"
+  }
+}
