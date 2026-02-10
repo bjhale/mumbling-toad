@@ -1,8 +1,21 @@
+#!/usr/bin/env node
 import React from 'react';
-import { render, Text } from 'ink';
+import { render } from 'ink';
+import meow from 'meow';
+import { App } from './app.js';
 
-export default function App() {
-  return <Text>Hello</Text>;
-}
+const cli = meow(`
+	Usage
+	  $ mumbling-toad [domain]
 
-render(<App />);
+	Options
+	  --help     Show help
+
+	Examples
+	  $ mumbling-toad
+	  $ mumbling-toad https://example.com
+`, {
+	importMeta: import.meta,
+});
+
+render(<App initialUrl={cli.input[0]} />);
