@@ -18,6 +18,7 @@ export class CrawlEngine {
   private crawler: CheerioCrawler | null = null;
   private statsInterval: NodeJS.Timeout | null = null;
   private pages: PageData[] = [];
+  private isRunning = false;
   private stats: CrawlStats = {
     pagesCrawled: 0,
     pagesInQueue: 0,
@@ -45,6 +46,7 @@ export class CrawlEngine {
   async start(url: string): Promise<void> {
     const normalizedUrl = this.normalizeUrl(url);
     this.stats.startTime = Date.now();
+    this.isRunning = true;
 
     this.crawler = new CheerioCrawler({
       maxConcurrency: this.options.maxConcurrency,
@@ -141,17 +143,32 @@ export class CrawlEngine {
   }
 
   async stop(): Promise<void> {
+    if (!this.isRunning) {
+      return;
+    }
+
+    this.isRunning = false;
+
     if (this.statsInterval) {
       clearInterval(this.statsInterval);
       this.statsInterval = null;
     }
 
     if (this.crawler) {
-      await this.crawler.teardown();
+      try {
+        const queue = await this.crawler.requestQueue;
+        if (queue) {
+          await this.crawler.teardown();
+        }
+      } catch (error) {
+        console.error('Error during crawler teardown:', error);
+      }
       this.crawler = null;
     }
 
-    this.callbacks.onCrawlComplete(this.pages, this.stats);
+    if (this.pages.length > 0 || this.stats.pagesCrawled > 0) {
+      this.callbacks.onCrawlComplete(this.pages, this.stats);
+    }
   }
 
   private normalizeUrl(url: string): string {
