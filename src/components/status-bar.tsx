@@ -1,7 +1,11 @@
 import React from 'react';
 import { Box, Text } from 'ink';
 
-export const StatusBar: React.FC = () => {
+interface StatusBarProps {
+  exportMessage?: string;
+}
+
+export const StatusBar: React.FC<StatusBarProps> = ({ exportMessage = '' }) => {
   return (
     <Box 
       width="100%" 
@@ -13,7 +17,7 @@ export const StatusBar: React.FC = () => {
       paddingX={1}
     >
       <Text dimColor>
-        ↑↓ Scroll | ←→ Columns | o Options | e Export | q Quit
+        {exportMessage || '↑↓ Scroll | ←→ Columns | o Options | e Export | q Quit'}
       </Text>
     </Box>
   );

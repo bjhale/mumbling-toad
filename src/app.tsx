@@ -4,9 +4,11 @@ import { Prompt } from './components/prompt.js';
 import { Sidebar } from './components/sidebar.js';
 import { StatusBar } from './components/status-bar.js';
 import { Table } from './components/table.js';
+import { Options } from './components/options.js';
 import { CrawlEngine } from './crawler/engine.js';
 import { CrawlStats, PageData, CrawlOptions, OnPageCrawled, OnStatsUpdate, OnCrawlComplete, OnCrawlError } from './crawler/types.js';
 import { DEFAULT_CRAWL_OPTIONS } from './constants.js';
+import { exportResults } from './export/index.js';
 
 interface AppProps {
   initialUrl?: string;
@@ -32,8 +34,10 @@ export const App: React.FC<AppProps> = ({ initialUrl }) => {
   const [state, setState] = useState<AppState>(initialUrl ? 'crawling' : 'prompting');
   const [stats, setStats] = useState<CrawlStats>(INITIAL_STATS);
   const [pages, setPages] = useState<PageData[]>([]);
-  const [options] = useState<CrawlOptions>(DEFAULT_CRAWL_OPTIONS);
+  const [options, setOptions] = useState<CrawlOptions>(DEFAULT_CRAWL_OPTIONS);
+  const [optionsOpen, setOptionsOpen] = useState(false);
   const [targetUrl, setTargetUrl] = useState<string | undefined>(initialUrl);
+  const [exportMessage, setExportMessage] = useState<string>('');
   
   const engineRef = useRef<CrawlEngine | null>(null);
   const pageBuffer = useRef<PageData[]>([]);
@@ -63,11 +67,16 @@ export const App: React.FC<AppProps> = ({ initialUrl }) => {
     setStats(newStats);
   };
 
-  const onCrawlComplete: OnCrawlComplete = () => {
-    // Flush any remaining buffered pages
+  const onCrawlComplete: OnCrawlComplete = (pages, stats) => {
     if (pageBuffer.current.length > 0) {
       setPages(prev => [...prev, ...pageBuffer.current]);
       pageBuffer.current = [];
+    }
+    if (targetUrl) {
+      const { csvPath } = exportResults(pages, stats, targetUrl);
+      const csvName = csvPath.split('/').pop();
+      setExportMessage(`Auto-exported to ${csvName}`);
+      setTimeout(() => setExportMessage(''), 3000);
     }
     setState('finished');
   };
@@ -113,7 +122,16 @@ export const App: React.FC<AppProps> = ({ initialUrl }) => {
     if (input === 'q') {
       exit();
     }
-  }, { isActive: state !== 'prompting' });
+    if (input === 'e' && pages.length > 0) {
+      const { csvPath } = exportResults(pages, stats, targetUrl || 'crawl');
+      const csvName = csvPath.split('/').pop();
+      setExportMessage(`Exported to ${csvName}`);
+      setTimeout(() => setExportMessage(''), 3000);
+    }
+    if (input === 'o' && !optionsOpen) {
+      setOptionsOpen(true);
+    }
+  }, { isActive: state !== 'prompting' && !optionsOpen });
 
   const handleUrlSubmit = (url: string) => {
     setTargetUrl(url);
@@ -129,14 +147,24 @@ export const App: React.FC<AppProps> = ({ initialUrl }) => {
     );
   }
 
+  if (optionsOpen) {
+    return (
+      <Options 
+        options={options} 
+        onClose={(updated) => { setOptions(updated); setOptionsOpen(false); }}
+        isActive={optionsOpen}
+      />
+    );
+  }
+
   return (
     <Box flexDirection="column" width="100%" height="100%">
       <Box flexDirection="row" flexGrow={1}>
-        <Table pages={pages} isFocused={true} terminalWidth={termWidth} />
+        <Table pages={pages} isFocused={!optionsOpen && true} terminalWidth={termWidth} />
         <Sidebar stats={stats} />
       </Box>
 
-      <StatusBar />
+      <StatusBar exportMessage={exportMessage} />
     </Box>
   );
 };
