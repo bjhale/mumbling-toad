@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Box, Text, useInput } from 'ink';
+import { validateUrl, normalizeUrl } from '../utils.js';
 
 interface PromptProps {
   onSubmit: (url: string) => void;
@@ -16,12 +17,14 @@ export const Prompt: React.FC<PromptProps> = ({ onSubmit }) => {
         return;
       }
       
-      let url = value.trim();
-      if (!url.startsWith('http://') && !url.startsWith('https://')) {
-        url = 'https://' + url;
+      const validation = validateUrl(value);
+      if (!validation.valid) {
+        setError(validation.error || 'Invalid URL');
+        return;
       }
       
-      onSubmit(url);
+      const normalized = normalizeUrl(value);
+      onSubmit(normalized);
       return;
     }
 

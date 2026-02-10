@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Box, useApp, useInput, useStdout } from 'ink';
+import { Box, useApp, useInput, useStdout, Text as InkText } from 'ink';
 import { Prompt } from './components/prompt.js';
 import { Sidebar } from './components/sidebar.js';
 import { StatusBar } from './components/status-bar.js';
@@ -38,11 +38,23 @@ export const App: React.FC<AppProps> = ({ initialUrl }) => {
   const [optionsOpen, setOptionsOpen] = useState(false);
   const [targetUrl, setTargetUrl] = useState<string | undefined>(initialUrl);
   const [exportMessage, setExportMessage] = useState<string>('');
+  const [errorMessage, setErrorMessage] = useState<string>('');
   
   const engineRef = useRef<CrawlEngine | null>(null);
   const pageBuffer = useRef<PageData[]>([]);
 
   const termWidth = stdout?.columns || 120;
+  const MIN_WIDTH = 100;
+
+  if (termWidth < MIN_WIDTH && state !== 'prompting') {
+    return (
+      <Box padding={2}>
+        <InkText color="yellow">
+          Terminal too narrow ({termWidth} columns). Please resize to at least {MIN_WIDTH} columns.
+        </InkText>
+      </Box>
+    );
+  }
 
   // Batched page updates: Flush buffer every 200ms
   useEffect(() => {
@@ -82,7 +94,9 @@ export const App: React.FC<AppProps> = ({ initialUrl }) => {
   };
 
   const onCrawlError: OnCrawlError = (error, url) => {
-    console.error('Crawl error:', error, url);
+    const message = `Error crawling ${url}: ${error.message}`;
+    setErrorMessage(message);
+    setTimeout(() => setErrorMessage(''), 5000);
   };
 
   // Create and start engine when entering crawling state
@@ -117,10 +131,33 @@ export const App: React.FC<AppProps> = ({ initialUrl }) => {
     }
   }, [initialUrl]);
 
-  // Global keyboard shortcuts (only active when not prompting)
+  const handleShutdown = () => {
+    if (engineRef.current) {
+      engineRef.current.stop();
+    }
+    
+    if (pages.length > 0) {
+      const { csvPath } = exportResults(pages, stats, targetUrl || 'crawl');
+      console.log(`\nExported partial results to ${csvPath}`);
+    }
+    
+    exit();
+  };
+
+  useEffect(() => {
+    const sigintHandler = () => handleShutdown();
+    process.on('SIGINT', sigintHandler);
+    process.on('SIGTERM', sigintHandler);
+    
+    return () => {
+      process.removeListener('SIGINT', sigintHandler);
+      process.removeListener('SIGTERM', sigintHandler);
+    };
+  }, []);
+
   useInput((input, _key) => {
     if (input === 'q') {
-      exit();
+      handleShutdown();
     }
     if (input === 'e' && pages.length > 0) {
       const { csvPath } = exportResults(pages, stats, targetUrl || 'crawl');
@@ -164,7 +201,7 @@ export const App: React.FC<AppProps> = ({ initialUrl }) => {
         <Sidebar stats={stats} />
       </Box>
 
-      <StatusBar exportMessage={exportMessage} />
+      <StatusBar exportMessage={exportMessage} errorMessage={errorMessage} />
     </Box>
   );
 };

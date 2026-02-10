@@ -3,9 +3,13 @@ import { Box, Text } from 'ink';
 
 interface StatusBarProps {
   exportMessage?: string;
+  errorMessage?: string;
 }
 
-export const StatusBar: React.FC<StatusBarProps> = ({ exportMessage = '' }) => {
+export const StatusBar: React.FC<StatusBarProps> = ({ exportMessage = '', errorMessage = '' }) => {
+  const displayMessage = errorMessage || exportMessage || '↑↓ Scroll | ←→ Columns | o Options | e Export | q Quit';
+  const color = errorMessage ? 'red' : undefined;
+  
   return (
     <Box 
       width="100%" 
@@ -16,8 +20,8 @@ export const StatusBar: React.FC<StatusBarProps> = ({ exportMessage = '' }) => {
       borderColor="gray" 
       paddingX={1}
     >
-      <Text dimColor>
-        {exportMessage || '↑↓ Scroll | ←→ Columns | o Options | e Export | q Quit'}
+      <Text dimColor color={color}>
+        {displayMessage}
       </Text>
     </Box>
   );

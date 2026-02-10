@@ -13,6 +13,7 @@ import type {
   CrawlStats,
 } from './types.js';
 import { extractSeoData } from './extractor.js';
+import { normalizeUrl } from '../utils.js';
 
 export class CrawlEngine {
   private crawler: CheerioCrawler | null = null;
@@ -44,7 +45,7 @@ export class CrawlEngine {
   }
 
   async start(url: string): Promise<void> {
-    const normalizedUrl = this.normalizeUrl(url);
+    const normalizedUrl = normalizeUrl(url);
     this.stats.startTime = Date.now();
     this.isRunning = true;
 
@@ -168,15 +169,6 @@ export class CrawlEngine {
 
     if (this.pages.length > 0 || this.stats.pagesCrawled > 0) {
       this.callbacks.onCrawlComplete(this.pages, this.stats);
-    }
-  }
-
-  private normalizeUrl(url: string): string {
-    try {
-      const parsed = new URL(url);
-      return parsed.href;
-    } catch {
-      return `https://${url}`;
     }
   }
 }
