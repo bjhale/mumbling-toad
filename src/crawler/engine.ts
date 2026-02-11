@@ -2,7 +2,8 @@
  * Core crawl engine using Crawlee's CheerioCrawler.
  */
 
-import { CheerioCrawler, EnqueueStrategy, Configuration } from 'crawlee';
+import { CheerioCrawler, EnqueueStrategy, Configuration, log } from 'crawlee';
+import { createTuiLogger } from './tui-logger.js';
 import type {
   CrawlOptions,
   OnPageCrawled,
@@ -39,9 +40,16 @@ export class CrawlEngine {
       onStatsUpdate: OnStatsUpdate;
       onCrawlComplete: OnCrawlComplete;
       onCrawlError: OnCrawlError;
+      onLogMessage?: (level: string, message: string) => void;
     }
   ) {
     Configuration.getGlobalConfig().set('persistStorage', false);
+    log.setLevel(log.LEVELS.OFF);
+
+    if (this.callbacks.onLogMessage) {
+      const logger = createTuiLogger(this.callbacks.onLogMessage);
+      log.setOptions({ logger });
+    }
   }
 
   async start(url: string): Promise<void> {
@@ -162,7 +170,10 @@ export class CrawlEngine {
           await this.crawler.teardown();
         }
       } catch (error) {
-        console.error('Error during crawler teardown:', error);
+        if (this.callbacks.onLogMessage) {
+          const message = error instanceof Error ? error.message : String(error);
+          this.callbacks.onLogMessage('ERROR', `Error during crawler teardown: ${message}`);
+        }
       }
       this.crawler = null;
     }

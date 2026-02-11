@@ -5,10 +5,12 @@ import { Sidebar } from './components/sidebar.js';
 import { StatusBar } from './components/status-bar.js';
 import { Table } from './components/table.js';
 import { Options } from './components/options.js';
+import { ConsolePanel } from './components/console-panel.js';
 import { CrawlEngine } from './crawler/engine.js';
 import { CrawlStats, PageData, CrawlOptions, OnPageCrawled, OnStatsUpdate, OnCrawlComplete, OnCrawlError } from './crawler/types.js';
 import { DEFAULT_CRAWL_OPTIONS } from './constants.js';
 import { exportResults } from './export/index.js';
+import { ConsoleMessage, startCapture, stopCapture } from './console-capture.js';
 
 interface AppProps {
   initialUrl?: string;
@@ -39,6 +41,8 @@ export const App: React.FC<AppProps> = ({ initialUrl }) => {
   const [targetUrl, setTargetUrl] = useState<string | undefined>(initialUrl);
   const [exportMessage, setExportMessage] = useState<string>('');
   const [errorMessage, setErrorMessage] = useState<string>('');
+  const [consoleMessages, setConsoleMessages] = useState<ConsoleMessage[]>([]);
+  const [consoleOpen, setConsoleOpen] = useState(false);
   
   const engineRef = useRef<CrawlEngine | null>(null);
   const pageBuffer = useRef<PageData[]>([]);
@@ -97,6 +101,11 @@ export const App: React.FC<AppProps> = ({ initialUrl }) => {
     const message = `Error crawling ${url}: ${error.message}`;
     setErrorMessage(message);
     setTimeout(() => setErrorMessage(''), 5000);
+    setConsoleMessages(prev => [...prev, {
+      timestamp: Date.now(),
+      level: 'error',
+      message,
+    } as ConsoleMessage].slice(-100));
   };
 
   // Create and start engine when entering crawling state
@@ -108,7 +117,20 @@ export const App: React.FC<AppProps> = ({ initialUrl }) => {
           onPageCrawled,
           onStatsUpdate,
           onCrawlComplete,
-          onCrawlError
+          onCrawlError,
+          onLogMessage: (level, message) => {
+            const normalized = level.toLowerCase();
+            const mappedLevel: ConsoleMessage['level'] = normalized === 'error'
+              ? 'error'
+              : normalized === 'warning'
+                ? 'warn'
+                : 'log';
+            setConsoleMessages(prev => [...prev, {
+              timestamp: Date.now(),
+              level: mappedLevel,
+              message,
+            }].slice(-100));
+          },
         }
       );
 
@@ -137,8 +159,7 @@ export const App: React.FC<AppProps> = ({ initialUrl }) => {
     }
     
     if (pages.length > 0) {
-      const { csvPath } = exportResults(pages, stats, targetUrl || 'crawl');
-      console.log(`\nExported partial results to ${csvPath}`);
+      exportResults(pages, stats, targetUrl || 'crawl');
     }
     
     exit();
@@ -155,6 +176,16 @@ export const App: React.FC<AppProps> = ({ initialUrl }) => {
     };
   }, []);
 
+  useEffect(() => {
+    startCapture((msg) => {
+      setConsoleMessages(prev => [...prev, msg].slice(-100));
+    });
+
+    return () => {
+      stopCapture();
+    };
+  }, []);
+
   useInput((input, _key) => {
     if (input === 'q') {
       handleShutdown();
@@ -167,6 +198,9 @@ export const App: React.FC<AppProps> = ({ initialUrl }) => {
     }
     if (input === 'o' && !optionsOpen) {
       setOptionsOpen(true);
+    }
+    if (input === 'c') {
+      setConsoleOpen(prev => !prev);
     }
   }, { isActive: state !== 'prompting' && !optionsOpen });
 
@@ -201,7 +235,14 @@ export const App: React.FC<AppProps> = ({ initialUrl }) => {
         <Sidebar stats={stats} />
       </Box>
 
-      <StatusBar exportMessage={exportMessage} errorMessage={errorMessage} />
+      <ConsolePanel messages={consoleMessages} visible={consoleOpen} />
+      <StatusBar
+        exportMessage={exportMessage}
+        errorMessage={errorMessage}
+        messageCount={consoleMessages.length}
+        consoleOpen={consoleOpen}
+        hasErrorMessages={consoleMessages.some(message => message.level === 'error')}
+      />
     </Box>
   );
 };

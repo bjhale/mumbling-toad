@@ -18,4 +18,9 @@ const cli = meow(`
 	importMeta: import.meta,
 });
 
-render(<App initialUrl={cli.input[0]} />);
+process.stdout.write('\x1B[2J\x1B[3J\x1B[H');
+const app = render(<App initialUrl={cli.input[0]} />);
+
+app.waitUntilExit().then(() => {
+	process.stdout.write('\x1B[2J\x1B[3J\x1B[H');
+});
