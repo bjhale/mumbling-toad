@@ -16,12 +16,12 @@
   "packageManager": "pnpm@10.27.0",
   "dependencies": {
     "@inkjs/ui": "^2.0.0",
-    "@types/react": "^18.2.0",
+    "@types/react": "^19.0.0",
     "crawlee": "^3.5.0",
     "csv-stringify": "^6.4.0",
-    "ink": "^4.4.1",
+    "ink": "^6.7.0",
     "meow": "^13.0.0",
-    "react": "^18.2.0"
+    "react": "^19.0.0"
   },
   "devDependencies": {
     "@sindresorhus/tsconfig": "^5.0.0",

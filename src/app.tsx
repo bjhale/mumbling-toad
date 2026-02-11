@@ -50,9 +50,9 @@ export const App: React.FC<AppProps> = ({ initialUrl }) => {
    const [consoleOpen, setConsoleOpen] = useState(false);
    const [isPaused, setIsPaused] = useState(false);
   
-  const engineRef = useRef<CrawlEngine | null>(null);
-  const pageBuffer = useRef<PageData[]>([]);
-  const tableRef = useRef<TableHandle>(null);
+   const engineRef = useRef<CrawlEngine | null>(null);
+   const pageBuffer = useRef<PageData[]>([]);
+   const tableRef = useRef<TableHandle | null>(null);
 
   const termWidth = stdout?.columns || 120;
   const MIN_WIDTH = 100;
