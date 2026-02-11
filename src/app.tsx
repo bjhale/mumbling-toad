@@ -52,6 +52,7 @@ export const App: React.FC<AppProps> = ({ initialUrl }) => {
   
    const engineRef = useRef<CrawlEngine | null>(null);
    const pageBuffer = useRef<PageData[]>([]);
+   const flushIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
    const tableRef = useRef<TableHandle | null>(null);
 
   const termWidth = stdout?.columns || 120;
@@ -76,12 +77,18 @@ export const App: React.FC<AppProps> = ({ initialUrl }) => {
   useEffect(() => {
     const interval = setInterval(() => {
       if (pageBuffer.current.length > 0) {
-        setPages(prev => [...prev, ...pageBuffer.current]);
-        pageBuffer.current = [];
+        const batch = pageBuffer.current.splice(0);
+        setPages(prev => [...prev, ...batch]);
       }
     }, 200);
+    
+    flushIntervalRef.current = interval;
 
-    return () => clearInterval(interval);
+    return () => {
+      if (flushIntervalRef.current) {
+        clearInterval(flushIntervalRef.current);
+      }
+    };
   }, []);
 
   // Engine callbacks
@@ -96,10 +103,18 @@ export const App: React.FC<AppProps> = ({ initialUrl }) => {
   };
 
    const onCrawlComplete: OnCrawlComplete = (_pages, _stats) => {
-     if (pageBuffer.current.length > 0) {
-       setPages(prev => [...prev, ...pageBuffer.current]);
-       pageBuffer.current = [];
+     // Clear the flush interval to prevent double-flush
+     if (flushIntervalRef.current) {
+       clearInterval(flushIntervalRef.current);
+       flushIntervalRef.current = null;
      }
+     
+     // Final flush of any remaining buffered pages
+     const remaining = pageBuffer.current.splice(0);
+     if (remaining.length > 0) {
+       setPages(prev => [...prev, ...remaining]);
+     }
+     
      setIsPaused(false);
      setState('finished');
    };
