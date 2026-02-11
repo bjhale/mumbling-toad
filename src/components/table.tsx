@@ -2,27 +2,31 @@ import React, { useState, useEffect } from 'react';
 import { Box, Text, useInput, useStdout } from 'ink';
 import { PageData } from '../crawler/types.js';
 import { COLUMN_DEFINITIONS } from '../constants.js';
+import { computeScrollbar } from '../scrollbar.js';
 
 export interface TableProps {
   pages: PageData[];
   isFocused: boolean;
   terminalWidth: number;
+  availableHeight?: number;
 }
 
-export const Table: React.FC<TableProps> = ({ pages, isFocused, terminalWidth }) => {
+export const Table: React.FC<TableProps> = ({ pages, isFocused, terminalWidth, availableHeight }) => {
   const { stdout } = useStdout();
   const [selectedRowIndex, setSelectedRowIndex] = useState(0);
   const [columnOffset, setColumnOffset] = useState(0);
   const [scrollOffset, setScrollOffset] = useState(0);
 
-  const TABLE_HEIGHT = stdout ? stdout.rows - 6 : 20;
+  const TABLE_HEIGHT = availableHeight !== undefined ? availableHeight : (stdout ? stdout.rows - 6 : 20);
   const VISIBLE_ROWS = Math.max(1, TABLE_HEIGHT - 3);
   const TABLE_WIDTH = Math.floor(terminalWidth * 0.7);
+  const SCROLLBAR_WIDTH = 1;
 
   const urlCol = COLUMN_DEFINITIONS.find(c => c.priority === 1)!;
   const otherCols = COLUMN_DEFINITIONS.filter(c => c.priority !== 1);
   
-   const availableWidth = Math.max(0, TABLE_WIDTH - urlCol.minWidth - 2);
+  const contentWidth = TABLE_WIDTH - (pages.length > VISIBLE_ROWS ? SCROLLBAR_WIDTH : 0);
+  const availableWidth = Math.max(0, contentWidth - urlCol.minWidth - 2);
   let currentWidth = 0;
   const visibleOtherCols = [];
   let hasHiddenRight = false;
@@ -151,6 +155,21 @@ export const Table: React.FC<TableProps> = ({ pages, isFocused, terminalWidth })
       {Array.from({ length: emptyRows }).map((_, i) => (
         <Box key={`empty-${i}`} height={1} />
       ))}
+
+      {pages.length > VISIBLE_ROWS && (
+        <Box width={SCROLLBAR_WIDTH} flexDirection="column" position="absolute" right={0} top={3}>
+          {Array.from({ length: VISIBLE_ROWS }).map((_, i) => {
+            const scrollbar = computeScrollbar({
+              totalRows: pages.length,
+              visibleRows: VISIBLE_ROWS,
+              scrollOffset,
+              trackHeight: VISIBLE_ROWS
+            });
+            const char = i >= scrollbar.thumbStart && i < scrollbar.thumbEnd ? '█' : '░';
+            return <Text key={i} color="gray">{char}</Text>;
+          })}
+        </Box>
+      )}
 
       <Box marginTop={1} justifyContent="space-between">
         <Text dimColor>

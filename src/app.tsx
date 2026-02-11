@@ -41,16 +41,22 @@ export const App: React.FC<AppProps> = ({ initialUrl }) => {
   const [promptValue, setPromptValue] = useState('');
   const [promptOptionsOpen, setPromptOptionsOpen] = useState(false);
   const [targetUrl, setTargetUrl] = useState<string | undefined>(initialUrl);
-  const [exportMessage, setExportMessage] = useState<string>('');
-  const [errorMessage, setErrorMessage] = useState<string>('');
-  const [consoleMessages, setConsoleMessages] = useState<ConsoleMessage[]>([]);
-  const [consoleOpen, setConsoleOpen] = useState(false);
+   const [exportMessage, setExportMessage] = useState<string>('');
+   const [errorMessage, setErrorMessage] = useState<string>('');
+   const [consoleMessages, setConsoleMessages] = useState<ConsoleMessage[]>([]);
+   const [consoleOpen, setConsoleOpen] = useState(false);
+   const [isPaused, setIsPaused] = useState(false);
   
   const engineRef = useRef<CrawlEngine | null>(null);
   const pageBuffer = useRef<PageData[]>([]);
 
   const termWidth = stdout?.columns || 120;
   const MIN_WIDTH = 100;
+
+  const CONSOLE_PANEL_HEIGHT = 11;
+  const tableAvailableHeight = consoleOpen 
+    ? (stdout?.rows || 24) - 6 - CONSOLE_PANEL_HEIGHT
+    : (stdout?.rows || 24) - 6;
 
   if (termWidth < MIN_WIDTH && state !== 'prompting') {
     return (
@@ -85,19 +91,20 @@ export const App: React.FC<AppProps> = ({ initialUrl }) => {
     setStats(newStats);
   };
 
-  const onCrawlComplete: OnCrawlComplete = (pages, stats) => {
-    if (pageBuffer.current.length > 0) {
-      setPages(prev => [...prev, ...pageBuffer.current]);
-      pageBuffer.current = [];
-    }
-    if (targetUrl) {
-      const { csvPath } = exportResults(pages, stats, targetUrl);
-      const csvName = csvPath.split('/').pop();
-      setExportMessage(`Auto-exported to ${csvName}`);
-      setTimeout(() => setExportMessage(''), 3000);
-    }
-    setState('finished');
-  };
+   const onCrawlComplete: OnCrawlComplete = (pages, stats) => {
+     if (pageBuffer.current.length > 0) {
+       setPages(prev => [...prev, ...pageBuffer.current]);
+       pageBuffer.current = [];
+     }
+     if (targetUrl) {
+       const { csvPath } = exportResults(pages, stats, targetUrl);
+       const csvName = csvPath.split('/').pop();
+       setExportMessage(`Auto-exported to ${csvName}`);
+       setTimeout(() => setExportMessage(''), 3000);
+     }
+     setIsPaused(false);
+     setState('finished');
+   };
 
   const onCrawlError: OnCrawlError = (error, url) => {
     const message = `Error crawling ${url}: ${error.message}`;
@@ -188,23 +195,27 @@ export const App: React.FC<AppProps> = ({ initialUrl }) => {
     };
   }, []);
 
-  useInput((input, _key) => {
-    if (input === 'q') {
-      handleShutdown();
-    }
-    if (input === 'e' && pages.length > 0) {
-      const { csvPath } = exportResults(pages, stats, targetUrl || 'crawl');
-      const csvName = csvPath.split('/').pop();
-      setExportMessage(`Exported to ${csvName}`);
-      setTimeout(() => setExportMessage(''), 3000);
-    }
-    if (input === 'o' && !optionsOpen) {
-      setOptionsOpen(true);
-    }
-    if (input === 'c') {
-      setConsoleOpen(prev => !prev);
-    }
-  }, { isActive: state !== 'prompting' && !optionsOpen });
+   useInput((input, _key) => {
+     if (input === 'q') {
+       handleShutdown();
+     }
+     if (input === 'e' && pages.length > 0) {
+       const { csvPath } = exportResults(pages, stats, targetUrl || 'crawl');
+       const csvName = csvPath.split('/').pop();
+       setExportMessage(`Exported to ${csvName}`);
+       setTimeout(() => setExportMessage(''), 3000);
+     }
+     if (input === 'o' && !optionsOpen) {
+       setOptionsOpen(true);
+     }
+     if (input === 'c') {
+       setConsoleOpen(prev => !prev);
+     }
+     if (input === 'p' && engineRef.current) {
+       engineRef.current.togglePause();
+       setIsPaused(engineRef.current.isPaused);
+     }
+   }, { isActive: state !== 'prompting' && !optionsOpen });
 
   const handleUrlSubmit = (url: string) => {
     setTargetUrl(url);
@@ -253,18 +264,19 @@ export const App: React.FC<AppProps> = ({ initialUrl }) => {
   return (
     <Box flexDirection="column" width="100%" height="100%">
       <Box flexDirection="row" flexGrow={1}>
-        <Table pages={pages} isFocused={!optionsOpen && true} terminalWidth={termWidth} />
+        <Table pages={pages} isFocused={!optionsOpen && true} terminalWidth={termWidth} availableHeight={tableAvailableHeight} />
         <Sidebar stats={stats} />
       </Box>
 
-      <ConsolePanel messages={consoleMessages} visible={consoleOpen} />
-      <StatusBar
-        exportMessage={exportMessage}
-        errorMessage={errorMessage}
-        messageCount={consoleMessages.length}
-        consoleOpen={consoleOpen}
-        hasErrorMessages={consoleMessages.some(message => message.level === 'error')}
-      />
+       <ConsolePanel messages={consoleMessages} visible={consoleOpen} />
+       <StatusBar
+         exportMessage={exportMessage}
+         errorMessage={errorMessage}
+         messageCount={consoleMessages.length}
+         consoleOpen={consoleOpen}
+         hasErrorMessages={consoleMessages.some(message => message.level === 'error')}
+         isPaused={isPaused}
+       />
     </Box>
   );
 };

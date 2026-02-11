@@ -7,6 +7,7 @@ interface StatusBarProps {
   messageCount?: number;
   consoleOpen?: boolean;
   hasErrorMessages?: boolean;
+  isPaused?: boolean;
 }
 
 const BADGE_PADDING = 1;
@@ -18,9 +19,12 @@ export const StatusBar: React.FC<StatusBarProps> = ({
   messageCount = 0,
   consoleOpen = false,
   hasErrorMessages = false,
+  isPaused = false,
 }) => {
-  const displayMessage = errorMessage || exportMessage || '↑↓ Scroll | ←→ Columns | o Options | e Export | q Quit';
-  const color = errorMessage ? 'red' : undefined;
+  const pauseHint = isPaused ? 'p Resume' : 'p Pause';
+  const defaultHints = `↑↓ Scroll | ←→ Columns | ${pauseHint} | c Console | o Options | e Export | q Quit`;
+  const displayMessage = errorMessage || exportMessage || (isPaused ? 'PAUSED — press p to resume' : defaultHints);
+  const color = errorMessage ? 'red' : isPaused ? 'yellow' : undefined;
   const showBadge = messageCount > 0;
   const badgeColor = hasErrorMessages ? 'yellow' : 'cyan';
 
