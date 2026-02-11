@@ -3,7 +3,7 @@ import { Box, useApp, useInput, useStdout, Text as InkText } from 'ink';
 import { Prompt } from './components/prompt.js';
 import { Sidebar } from './components/sidebar.js';
 import { StatusBar } from './components/status-bar.js';
-import { Table } from './components/table.js';
+import { Table, type TableHandle } from './components/table.js';
 import { Options } from './components/options.js';
 import { ConsolePanel } from './components/console-panel.js';
 import { CrawlEngine } from './crawler/engine.js';
@@ -11,6 +11,8 @@ import { CrawlStats, PageData, CrawlOptions, OnPageCrawled, OnStatsUpdate, OnCra
 import { DEFAULT_CRAWL_OPTIONS } from './constants.js';
 import { exportResults } from './export/index.js';
 import { ConsoleMessage, startCapture, stopCapture } from './console-capture.js';
+import { useMouse } from './hooks/use-mouse.js';
+import { type MouseEvent } from './mouse-parser.js';
 
 interface AppProps {
   initialUrl?: string;
@@ -49,6 +51,7 @@ export const App: React.FC<AppProps> = ({ initialUrl }) => {
   
   const engineRef = useRef<CrawlEngine | null>(null);
   const pageBuffer = useRef<PageData[]>([]);
+  const tableRef = useRef<TableHandle>(null);
 
   const termWidth = stdout?.columns || 120;
   const MIN_WIDTH = 100;
@@ -175,13 +178,25 @@ export const App: React.FC<AppProps> = ({ initialUrl }) => {
   };
 
   useEffect(() => {
-    const sigintHandler = () => handleShutdown();
+    const sigintHandler = () => {
+      process.stdout.write('\x1b[?1000l\x1b[?1006l');
+      handleShutdown();
+    };
+    
+    const uncaughtHandler = (error: Error) => {
+      process.stdout.write('\x1b[?1000l\x1b[?1006l');
+      console.error('Uncaught exception:', error);
+      process.exit(1);
+    };
+    
     process.on('SIGINT', sigintHandler);
     process.on('SIGTERM', sigintHandler);
+    process.on('uncaughtException', uncaughtHandler);
     
     return () => {
       process.removeListener('SIGINT', sigintHandler);
       process.removeListener('SIGTERM', sigintHandler);
+      process.removeListener('uncaughtException', uncaughtHandler);
     };
   }, []);
 
@@ -216,6 +231,73 @@ export const App: React.FC<AppProps> = ({ initialUrl }) => {
        setIsPaused(engineRef.current.isPaused);
      }
    }, { isActive: state !== 'prompting' && !optionsOpen });
+
+  const handleMouse = (event: MouseEvent) => {
+    if (state !== 'crawling') return;
+
+    if (event.type === 'wheel') {
+      if (tableRef.current) {
+        const delta = event.button === 64 ? -1 : 1;
+        tableRef.current.adjustScroll(delta);
+      }
+      return;
+    }
+
+    if (event.type === 'press') {
+      const statusBarY = (stdout?.rows || 24) - 2;
+      if (event.y >= statusBarY) {
+        const hintsText = `↑↓ Scroll | ←→ Columns | ${isPaused ? 'p Resume' : 'p Pause'} | c Console | o Options | e Export | q Quit`;
+        
+        if (hintsText.includes('p Resume') || hintsText.includes('p Pause')) {
+          const pauseIndex = hintsText.indexOf('p ');
+          if (event.x >= pauseIndex + 30 && event.x <= pauseIndex + 50) {
+            if (engineRef.current) {
+              engineRef.current.togglePause();
+              setIsPaused(engineRef.current.isPaused);
+            }
+          }
+        }
+        
+        if (hintsText.includes('c Console')) {
+          const consoleIndex = hintsText.indexOf('c Console');
+          if (event.x >= consoleIndex + 30 && event.x <= consoleIndex + 50) {
+            setConsoleOpen(prev => !prev);
+          }
+        }
+        
+        if (hintsText.includes('o Options')) {
+          const optionsIndex = hintsText.indexOf('o Options');
+          if (event.x >= optionsIndex + 30 && event.x <= optionsIndex + 50) {
+            setOptionsOpen(true);
+          }
+        }
+        
+        if (hintsText.includes('e Export')) {
+          const exportIndex = hintsText.indexOf('e Export');
+          if (event.x >= exportIndex + 30 && event.x <= exportIndex + 50) {
+            if (pages.length > 0) {
+              const { csvPath } = exportResults(pages, stats, targetUrl || 'crawl');
+              const csvName = csvPath.split('/').pop();
+              setExportMessage(`Exported to ${csvName}`);
+              setTimeout(() => setExportMessage(''), 3000);
+            }
+          }
+        }
+        
+        if (hintsText.includes('q Quit')) {
+          const quitIndex = hintsText.indexOf('q Quit');
+          if (event.x >= quitIndex + 30) {
+            handleShutdown();
+          }
+        }
+      }
+    }
+  };
+
+  useMouse({
+    isActive: state !== 'prompting' && !optionsOpen && !promptOptionsOpen,
+    onMouseEvent: handleMouse,
+  });
 
   const handleUrlSubmit = (url: string) => {
     setTargetUrl(url);
@@ -264,7 +346,7 @@ export const App: React.FC<AppProps> = ({ initialUrl }) => {
   return (
     <Box flexDirection="column" width="100%" height="100%">
       <Box flexDirection="row" flexGrow={1}>
-        <Table pages={pages} isFocused={!optionsOpen && true} terminalWidth={termWidth} availableHeight={tableAvailableHeight} />
+        <Table ref={tableRef} pages={pages} isFocused={!optionsOpen && true} terminalWidth={termWidth} availableHeight={tableAvailableHeight} />
         <Sidebar stats={stats} />
       </Box>
 

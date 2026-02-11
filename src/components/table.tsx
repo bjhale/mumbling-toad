@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useImperativeHandle, forwardRef } from 'react';
 import { Box, Text, useInput, useStdout } from 'ink';
 import { PageData } from '../crawler/types.js';
 import { COLUMN_DEFINITIONS } from '../constants.js';
@@ -11,7 +11,11 @@ export interface TableProps {
   availableHeight?: number;
 }
 
-export const Table: React.FC<TableProps> = ({ pages, isFocused, terminalWidth, availableHeight }) => {
+export interface TableHandle {
+  adjustScroll: (delta: number) => void;
+}
+
+export const Table = forwardRef<TableHandle, TableProps>(({ pages, isFocused, terminalWidth, availableHeight }, ref) => {
   const { stdout } = useStdout();
   const [selectedRowIndex, setSelectedRowIndex] = useState(0);
   const [columnOffset, setColumnOffset] = useState(0);
@@ -77,6 +81,12 @@ export const Table: React.FC<TableProps> = ({ pages, isFocused, terminalWidth, a
       setScrollOffset(selectedRowIndex - VISIBLE_ROWS + 1);
     }
   }, [selectedRowIndex, scrollOffset, VISIBLE_ROWS]);
+
+  useImperativeHandle(ref, () => ({
+    adjustScroll: (delta: number) => {
+      setSelectedRowIndex(prev => Math.max(0, Math.min(pages.length - 1, prev + delta)));
+    }
+  }), [pages.length]);
 
   const renderCell = (page: PageData, colKey: string, width: number, isSelected: boolean) => {
     let content: React.ReactNode = '';
@@ -180,4 +190,4 @@ export const Table: React.FC<TableProps> = ({ pages, isFocused, terminalWidth, a
       </Box>
     </Box>
   );
-};
+});
