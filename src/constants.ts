@@ -1,10 +1,10 @@
-import type { CrawlOptions } from './crawler/types.js';
+import type { CrawlOptions } from "./crawler/types.js";
 
 /** Application name */
-export const APP_NAME = 'MumblingToad SEO Crawler';
+export const APP_NAME = "MumblingToad SEO Crawler";
 
 /** Application version */
-export const APP_VERSION = '1.0.0';
+export const APP_VERSION = "1.0.0";
 
 /** Minimum terminal width required for the TUI (in columns) */
 export const MIN_TERMINAL_WIDTH = 100;
@@ -13,11 +13,11 @@ export const MIN_TERMINAL_WIDTH = 100;
 export const DEFAULT_CRAWL_OPTIONS: CrawlOptions = {
   maxConcurrency: 5,
   requestDelayMs: 200,
-  maxPages: 1000,
+  maxPages: 10000,
   maxDepth: 10,
   respectRobotsTxt: true,
   renderJs: false,
-  userAgent: 'MumblingToad SEO Crawler/1.0',
+  userAgent: "MumblingToad SEO Crawler/1.0",
 };
 
 /**
@@ -34,13 +34,13 @@ export interface ColumnDefinition {
 
 /** Table column definitions (9 columns, ordered by priority for horizontal scrolling) */
 export const COLUMN_DEFINITIONS: ColumnDefinition[] = [
-  { key: 'url', label: 'URL', minWidth: 35, priority: 1 },
-  { key: 'statusCode', label: 'Status', minWidth: 8, priority: 2 },
-  { key: 'title', label: 'Title', minWidth: 25, priority: 3 },
-  { key: 'isIndexable', label: 'Indexability', minWidth: 12, priority: 4 },
-  { key: 'responseTimeMs', label: 'Response Time', minWidth: 14, priority: 5 },
-  { key: 'h1', label: 'H1', minWidth: 20, priority: 6 },
-  { key: 'wordCount', label: 'Word Count', minWidth: 11, priority: 7 },
-  { key: 'metaDescription', label: 'Meta Desc', minWidth: 22, priority: 8 },
-  { key: 'contentType', label: 'Content Type', minWidth: 18, priority: 9 },
+  { key: "url", label: "URL", minWidth: 35, priority: 1 },
+  { key: "statusCode", label: "Status", minWidth: 8, priority: 2 },
+  { key: "title", label: "Title", minWidth: 25, priority: 3 },
+  { key: "isIndexable", label: "Indexable", minWidth: 11, priority: 4 },
+  { key: "responseTimeMs", label: "Time (ms)", minWidth: 11, priority: 5 },
+  { key: "h1", label: "H1", minWidth: 20, priority: 6 },
+  { key: "wordCount", label: "Words", minWidth: 9, priority: 7 },
+  { key: "metaDescription", label: "Meta Desc", minWidth: 20, priority: 8 },
+  { key: "contentType", label: "Content Type", minWidth: 14, priority: 9 },
 ];
