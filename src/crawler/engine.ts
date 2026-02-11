@@ -21,6 +21,7 @@ export class CrawlEngine {
   private statsInterval: NodeJS.Timeout | null = null;
   private pages: PageData[] = [];
   private isRunning = false;
+  private _isPaused = false;
   private stats: CrawlStats = {
     pagesCrawled: 0,
     pagesInQueue: 0,
@@ -49,6 +50,31 @@ export class CrawlEngine {
     if (this.callbacks.onLogMessage) {
       const logger = createTuiLogger(this.callbacks.onLogMessage);
       log.setOptions({ logger });
+     }
+   }
+
+  get isPaused(): boolean {
+    return this._isPaused;
+  }
+
+  pause(): void {
+    if (!this.isRunning || this._isPaused) return;
+    this._isPaused = true;
+    // Fire-and-forget — do NOT await
+    this.crawler?.autoscaledPool?.pause();
+  }
+
+  resume(): void {
+    if (!this._isPaused) return;
+    this._isPaused = false;
+    this.crawler?.autoscaledPool?.resume();
+  }
+
+  togglePause(): void {
+    if (this._isPaused) {
+      this.resume();
+    } else {
+      this.pause();
     }
   }
 
@@ -157,6 +183,10 @@ export class CrawlEngine {
     }
 
     this.isRunning = false;
+
+    if (this._isPaused) {
+      this.resume();
+    }
 
     if (this.statsInterval) {
       clearInterval(this.statsInterval);

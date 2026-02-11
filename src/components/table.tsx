@@ -22,7 +22,7 @@ export const Table: React.FC<TableProps> = ({ pages, isFocused, terminalWidth })
   const urlCol = COLUMN_DEFINITIONS.find(c => c.priority === 1)!;
   const otherCols = COLUMN_DEFINITIONS.filter(c => c.priority !== 1);
   
-  const availableWidth = Math.max(0, TABLE_WIDTH - urlCol.minWidth);
+   const availableWidth = Math.max(0, TABLE_WIDTH - urlCol.minWidth - 2);
   let currentWidth = 0;
   const visibleOtherCols = [];
   let hasHiddenRight = false;
@@ -30,10 +30,10 @@ export const Table: React.FC<TableProps> = ({ pages, isFocused, terminalWidth })
   const availableOtherCols = otherCols.slice(columnOffset);
   const hasHiddenLeft = columnOffset > 0;
 
-  for (const col of availableOtherCols) {
-    if (currentWidth + col.minWidth <= availableWidth) {
-      visibleOtherCols.push(col);
-      currentWidth += col.minWidth;
+   for (const col of availableOtherCols) {
+     if (currentWidth + col.minWidth + 2 <= availableWidth) {
+       visibleOtherCols.push(col);
+       currentWidth += col.minWidth + 2;
     } else {
       hasHiddenRight = true;
       break;
@@ -117,11 +117,11 @@ export const Table: React.FC<TableProps> = ({ pages, isFocused, terminalWidth })
         content = <Text {...textProps}>{truncate(String(val), width)}</Text>;
     }
 
-    return (
-      <Box width={width} key={colKey}>
-        {content}
-      </Box>
-    );
+     return (
+       <Box width={width} key={colKey} paddingX={1}>
+         {content}
+       </Box>
+     );
   };
 
   const visiblePages = pages.slice(scrollOffset, scrollOffset + VISIBLE_ROWS);
@@ -129,13 +129,13 @@ export const Table: React.FC<TableProps> = ({ pages, isFocused, terminalWidth })
 
   return (
     <Box flexDirection="column" width={TABLE_WIDTH}>
-      <Box borderStyle="single" borderTop={false} borderLeft={false} borderRight={false} borderColor="gray">
-        {visibleColumns.map(col => (
-          <Box key={col.key} width={col.minWidth}>
-            <Text bold>{col.label}</Text>
-          </Box>
-        ))}
-      </Box>
+       <Box borderStyle="single" borderTop={false} borderLeft={false} borderRight={false} borderColor="gray">
+         {visibleColumns.map(col => (
+           <Box key={col.key} width={col.minWidth} paddingX={1}>
+             <Text bold>{col.label}</Text>
+           </Box>
+         ))}
+       </Box>
 
       {visiblePages.map((page, idx) => {
         const globalIndex = scrollOffset + idx;

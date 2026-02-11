@@ -38,6 +38,8 @@ export const App: React.FC<AppProps> = ({ initialUrl }) => {
   const [pages, setPages] = useState<PageData[]>([]);
   const [options, setOptions] = useState<CrawlOptions>(DEFAULT_CRAWL_OPTIONS);
   const [optionsOpen, setOptionsOpen] = useState(false);
+  const [promptValue, setPromptValue] = useState('');
+  const [promptOptionsOpen, setPromptOptionsOpen] = useState(false);
   const [targetUrl, setTargetUrl] = useState<string | undefined>(initialUrl);
   const [exportMessage, setExportMessage] = useState<string>('');
   const [errorMessage, setErrorMessage] = useState<string>('');
@@ -211,9 +213,29 @@ export const App: React.FC<AppProps> = ({ initialUrl }) => {
   };
 
   if (state === 'prompting') {
+    if (promptOptionsOpen) {
+      return (
+        <Options
+          options={options}
+          onClose={(updated) => {
+            setOptions(updated);
+            setPromptOptionsOpen(false);
+          }}
+          isActive={promptOptionsOpen}
+        />
+      );
+    }
+    
     return (
       <Box width="100%" height="100%" alignItems="center" justifyContent="center">
-        <Prompt onSubmit={handleUrlSubmit} />
+        <Prompt
+          onSubmit={handleUrlSubmit}
+          onOpenOptions={() => setPromptOptionsOpen(true)}
+          onQuit={() => exit()}
+          initialValue={promptValue}
+          isActive={!promptOptionsOpen}
+          onValueChange={setPromptValue}
+        />
       </Box>
     );
   }

@@ -4,6 +4,11 @@ import { validateUrl, normalizeUrl } from '../utils.js';
 
 interface PromptProps {
   onSubmit: (url: string) => void;
+  onOpenOptions: () => void;
+  onQuit: () => void;
+  initialValue?: string;
+  isActive?: boolean;
+  onValueChange?: (value: string) => void;
 }
 
 const SPLASH_ART = [
@@ -29,8 +34,8 @@ const SPLASH_ART = [
   '                                                 '
 ];
 
-export const Prompt: React.FC<PromptProps> = ({ onSubmit }) => {
-  const [value, setValue] = useState('');
+export const Prompt: React.FC<PromptProps> = ({ onSubmit, onOpenOptions, onQuit, initialValue = '', isActive = true, onValueChange }) => {
+  const [value, setValue] = useState(initialValue);
   const [error, setError] = useState<string | null>(null);
   const { stdout } = useStdout();
   
@@ -38,6 +43,17 @@ export const Prompt: React.FC<PromptProps> = ({ onSubmit }) => {
   const showSplash = termHeight > 25;
 
   useInput((input, key) => {
+    // Ctrl+O for Options and Esc for Quit MUST be before the ctrl/meta guard
+    if (key.escape) {
+      onQuit();
+      return;
+    }
+    
+    if (key.ctrl && input === 'o') {
+      onOpenOptions();
+      return;
+    }
+
     if (key.return) {
       if (!value.trim()) {
         setError('Please enter a URL');
@@ -56,7 +72,9 @@ export const Prompt: React.FC<PromptProps> = ({ onSubmit }) => {
     }
 
     if (key.backspace || key.delete) {
-      setValue(prev => prev.slice(0, -1));
+      const newValue = value.slice(0, -1);
+      setValue(newValue);
+      onValueChange?.(newValue);
       setError(null);
       return;
     }
@@ -65,9 +83,11 @@ export const Prompt: React.FC<PromptProps> = ({ onSubmit }) => {
       return;
     }
 
-    setValue(prev => prev + input);
+    const newValue = value + input;
+    setValue(newValue);
+    onValueChange?.(newValue);
     setError(null);
-  });
+  }, { isActive });
 
   return (
     <Box width="100%" height="100%" flexDirection="column" alignItems="center" justifyContent="center">
@@ -93,6 +113,9 @@ export const Prompt: React.FC<PromptProps> = ({ onSubmit }) => {
         )}
         <Box marginTop={1}>
           <Text color="gray" dimColor>Type domain and press Enter (e.g., example.com)</Text>
+        </Box>
+        <Box marginTop={1}>
+          <Text color="gray" dimColor>Ctrl+O Settings | Esc Quit</Text>
         </Box>
       </Box>
     </Box>
