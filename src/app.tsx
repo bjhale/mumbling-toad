@@ -59,9 +59,8 @@ export const App: React.FC<AppProps> = ({ initialUrl }) => {
   const MIN_WIDTH = 100;
 
   const CONSOLE_PANEL_HEIGHT = 11;
-  const tableAvailableHeight = consoleOpen 
-    ? (stdout?.rows || 24) - 6 - CONSOLE_PANEL_HEIGHT
-    : (stdout?.rows || 24) - 6;
+  const STATUS_BAR_HEIGHT = 2;
+  const tableAvailableHeight = (stdout?.rows || 24) - 6;
 
   if (termWidth < MIN_WIDTH && state !== 'prompting') {
     return (
@@ -368,7 +367,11 @@ export const App: React.FC<AppProps> = ({ initialUrl }) => {
         <Sidebar stats={stats} />
       </Box>
 
-       <ConsolePanel messages={consoleMessages} visible={consoleOpen} />
+       {consoleOpen && (
+         <Box position="absolute" marginTop={(stdout?.rows || 24) - CONSOLE_PANEL_HEIGHT - STATUS_BAR_HEIGHT} width="100%">
+           <ConsolePanel messages={consoleMessages} visible={true} />
+         </Box>
+       )}
        <StatusBar
          exportMessage={exportMessage}
          errorMessage={errorMessage}
