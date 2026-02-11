@@ -46,7 +46,7 @@ export function parseMouseEvent(data: Buffer): MouseEvent | null {
 	const regex = /\x1b\[<(\d+);(\d+);(\d+)([Mm])/;
 	const match = str.match(regex);
 
-	if (!match) {
+	if (!match || !match[1] || !match[2] || !match[3] || !match[4]) {
 		return null;
 	}
 

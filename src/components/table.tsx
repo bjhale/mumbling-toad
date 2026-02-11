@@ -140,46 +140,49 @@ export const Table = forwardRef<TableHandle, TableProps>(({ pages, isFocused, te
 
   const visiblePages = pages.slice(scrollOffset, scrollOffset + VISIBLE_ROWS);
   const emptyRows = Math.max(0, VISIBLE_ROWS - visiblePages.length);
+  const showScrollbar = pages.length > VISIBLE_ROWS;
 
   return (
     <Box flexDirection="column" width={TABLE_WIDTH}>
        <Box borderStyle="single" borderTop={false} borderLeft={false} borderRight={false} borderColor="gray">
-         {visibleColumns.map(col => (
-           <Box key={col.key} width={col.minWidth} paddingX={1}>
-             <Text bold>{col.label}</Text>
-           </Box>
-         ))}
-       </Box>
-
-      {visiblePages.map((page, idx) => {
-        const globalIndex = scrollOffset + idx;
-        const isSelected = globalIndex === selectedRowIndex;
-        
-        return (
-          <Box key={page.url}>
-            {visibleColumns.map(col => renderCell(page, col.key, col.minWidth, isSelected))}
-          </Box>
-        );
-      })}
-
-      {Array.from({ length: emptyRows }).map((_, i) => (
-        <Box key={`empty-${i}`} height={1} />
-      ))}
-
-      {pages.length > VISIBLE_ROWS && (
-        <Box width={SCROLLBAR_WIDTH} flexDirection="column" position="absolute" right={0} top={3}>
-          {Array.from({ length: VISIBLE_ROWS }).map((_, i) => {
-            const scrollbar = computeScrollbar({
-              totalRows: pages.length,
-              visibleRows: VISIBLE_ROWS,
-              scrollOffset,
-              trackHeight: VISIBLE_ROWS
-            });
-            const char = i >= scrollbar.thumbStart && i < scrollbar.thumbEnd ? '█' : '░';
-            return <Text key={i} color="gray">{char}</Text>;
-          })}
+          {visibleColumns.map(col => (
+            <Box key={col.key} width={col.minWidth} paddingX={1}>
+              <Text bold>{col.label}</Text>
+            </Box>
+          ))}
+          {showScrollbar && <Box width={SCROLLBAR_WIDTH}></Box>}
         </Box>
-      )}
+
+       {visiblePages.map((page, idx) => {
+         const globalIndex = scrollOffset + idx;
+         const isSelected = globalIndex === selectedRowIndex;
+         
+         return (
+           <Box key={page.url}>
+             {visibleColumns.map(col => renderCell(page, col.key, col.minWidth, isSelected))}
+             {showScrollbar && (
+               <Box width={SCROLLBAR_WIDTH}>
+                 {(() => {
+                   const scrollbar = computeScrollbar({
+                     totalRows: pages.length,
+                     visibleRows: VISIBLE_ROWS,
+                     scrollOffset,
+                     trackHeight: VISIBLE_ROWS
+                   });
+                   const char = idx >= scrollbar.thumbStart && idx < scrollbar.thumbEnd ? '█' : '░';
+                   return <Text color="gray">{char}</Text>;
+                 })()}
+               </Box>
+             )}
+           </Box>
+         );
+       })}
+
+       {Array.from({ length: emptyRows }).map((_, i) => (
+         <Box key={`empty-${i}`} height={1}>
+           {showScrollbar && <Box width={SCROLLBAR_WIDTH}></Box>}
+         </Box>
+       ))}
 
       <Box marginTop={1} justifyContent="space-between">
         <Text dimColor>
