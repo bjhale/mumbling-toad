@@ -94,16 +94,10 @@ export const App: React.FC<AppProps> = ({ initialUrl }) => {
     setStats(newStats);
   };
 
-   const onCrawlComplete: OnCrawlComplete = (pages, stats) => {
+   const onCrawlComplete: OnCrawlComplete = (_pages, _stats) => {
      if (pageBuffer.current.length > 0) {
        setPages(prev => [...prev, ...pageBuffer.current]);
        pageBuffer.current = [];
-     }
-     if (targetUrl) {
-       const { csvPath } = exportResults(pages, stats, targetUrl);
-       const csvName = csvPath.split('/').pop();
-       setExportMessage(`Auto-exported to ${csvName}`);
-       setTimeout(() => setExportMessage(''), 3000);
      }
      setIsPaused(false);
      setState('finished');
@@ -168,10 +162,6 @@ export const App: React.FC<AppProps> = ({ initialUrl }) => {
   const handleShutdown = () => {
     if (engineRef.current) {
       engineRef.current.stop();
-    }
-    
-    if (pages.length > 0) {
-      exportResults(pages, stats, targetUrl || 'crawl');
     }
     
     exit();
@@ -345,7 +335,7 @@ export const App: React.FC<AppProps> = ({ initialUrl }) => {
 
   return (
     <Box flexDirection="column" width="100%" height="100%">
-      <Box flexDirection="row" flexGrow={1}>
+      <Box flexDirection="row" flexGrow={1} overflowY="hidden">
         <Table ref={tableRef} pages={pages} isFocused={!optionsOpen && true} terminalWidth={termWidth} availableHeight={tableAvailableHeight} />
         <Sidebar stats={stats} />
       </Box>

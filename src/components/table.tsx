@@ -26,28 +26,31 @@ export const Table = forwardRef<TableHandle, TableProps>(({ pages, isFocused, te
   const TABLE_WIDTH = Math.floor(terminalWidth * 0.7);
   const SCROLLBAR_WIDTH = 1;
 
-  const urlCol = COLUMN_DEFINITIONS.find(c => c.priority === 1)!;
+  const urlColDef = COLUMN_DEFINITIONS.find(c => c.priority === 1)!;
   const otherCols = COLUMN_DEFINITIONS.filter(c => c.priority !== 1);
   
   const contentWidth = TABLE_WIDTH - (pages.length > VISIBLE_ROWS ? SCROLLBAR_WIDTH : 0);
-  const availableWidth = Math.max(0, contentWidth - urlCol.minWidth - 2);
-  let currentWidth = 0;
+  const availableForOthers = Math.max(0, contentWidth - urlColDef.minWidth);
+  let usedByOthers = 0;
   const visibleOtherCols = [];
   let hasHiddenRight = false;
 
   const availableOtherCols = otherCols.slice(columnOffset);
   const hasHiddenLeft = columnOffset > 0;
 
-   for (const col of availableOtherCols) {
-     if (currentWidth + col.minWidth + 2 <= availableWidth) {
-       visibleOtherCols.push(col);
-       currentWidth += col.minWidth + 2;
+  for (const col of availableOtherCols) {
+    if (usedByOthers + col.minWidth <= availableForOthers) {
+      visibleOtherCols.push(col);
+      usedByOthers += col.minWidth;
     } else {
       hasHiddenRight = true;
       break;
     }
   }
 
+  // URL column expands to fill whatever space the other columns don't use
+  const urlColWidth = Math.max(urlColDef.minWidth, contentWidth - usedByOthers);
+  const urlCol = { ...urlColDef, minWidth: urlColWidth };
   const visibleColumns = [urlCol, ...visibleOtherCols];
 
   useInput((input, key) => {
@@ -63,8 +66,9 @@ export const Table = forwardRef<TableHandle, TableProps>(({ pages, isFocused, te
       setColumnOffset(prev => Math.max(0, prev - 1));
     }
     else if (key.rightArrow) {
-      const maxOffset = otherCols.length - 1;
-      setColumnOffset(prev => Math.min(maxOffset, prev + 1));
+      if (hasHiddenRight) {
+        setColumnOffset(prev => prev + 1);
+      }
     }
     else if (input === 'g') {
       setSelectedRowIndex(0);
@@ -143,13 +147,15 @@ export const Table = forwardRef<TableHandle, TableProps>(({ pages, isFocused, te
   const showScrollbar = pages.length > VISIBLE_ROWS;
 
   return (
-    <Box flexDirection="column" width={TABLE_WIDTH}>
+    <Box flexDirection="column" width={TABLE_WIDTH} height={TABLE_HEIGHT} overflowY="hidden">
        <Box borderStyle="single" borderTop={false} borderLeft={false} borderRight={false} borderColor="gray">
-          {visibleColumns.map(col => (
-            <Box key={col.key} width={col.minWidth} paddingX={1}>
-              <Text bold>{col.label}</Text>
-            </Box>
-          ))}
+          <Box flexGrow={1}>
+            {visibleColumns.map(col => (
+              <Box key={col.key} width={col.minWidth} paddingX={1}>
+                <Text bold>{col.label}</Text>
+              </Box>
+            ))}
+          </Box>
           {showScrollbar && <Box width={SCROLLBAR_WIDTH}></Box>}
         </Box>
 
@@ -159,7 +165,9 @@ export const Table = forwardRef<TableHandle, TableProps>(({ pages, isFocused, te
          
          return (
            <Box key={page.url}>
-             {visibleColumns.map(col => renderCell(page, col.key, col.minWidth, isSelected))}
+             <Box flexGrow={1}>
+               {visibleColumns.map(col => renderCell(page, col.key, col.minWidth, isSelected))}
+             </Box>
              {showScrollbar && (
                <Box width={SCROLLBAR_WIDTH}>
                  {(() => {
@@ -180,6 +188,7 @@ export const Table = forwardRef<TableHandle, TableProps>(({ pages, isFocused, te
 
        {Array.from({ length: emptyRows }).map((_, i) => (
          <Box key={`empty-${i}`} height={1}>
+           <Box flexGrow={1} />
            {showScrollbar && <Box width={SCROLLBAR_WIDTH}></Box>}
          </Box>
        ))}
