@@ -29,6 +29,7 @@ const INITIAL_STATS: CrawlStats = {
   indexableCount: 0,
   nonIndexableCount: 0,
   statusCodes: {},
+  contentTypes: {},
   totalResponseTimeMs: 0,
 };
 
@@ -190,6 +191,18 @@ export const App: React.FC<AppProps> = ({ initialUrl }) => {
     };
   }, []);
 
+  const mouseActive = state !== 'prompting' && !optionsOpen && !promptOptionsOpen;
+  useEffect(() => {
+    if (mouseActive) {
+      process.stdout.write('\x1b[?1000h\x1b[?1006h');
+    } else {
+      process.stdout.write('\x1b[?1000l\x1b[?1006l');
+    }
+    return () => {
+      process.stdout.write('\x1b[?1000l\x1b[?1006l');
+    };
+  }, [mouseActive]);
+
   useEffect(() => {
     startCapture((msg) => {
       setConsoleMessages(prev => [...prev, msg].slice(-100));
@@ -285,7 +298,7 @@ export const App: React.FC<AppProps> = ({ initialUrl }) => {
   };
 
   useMouse({
-    isActive: state !== 'prompting' && !optionsOpen && !promptOptionsOpen,
+    isActive: mouseActive,
     onMouseEvent: handleMouse,
   });
 

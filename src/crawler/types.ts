@@ -71,6 +71,9 @@ export interface CrawlStats {
   /** Distribution of HTTP status codes by category (e.g., {"2xx": 45, "3xx": 2, "4xx": 1, "5xx": 0}) */
   statusCodes: Record<string, number>;
 
+  /** Distribution of content types (e.g., {"text/html": 45, "application/pdf": 2}) */
+  contentTypes: Record<string, number>;
+
   /** Sum of all responseTimeMs values for crawled pages */
   totalResponseTimeMs: number;
 }

@@ -93,6 +93,18 @@ export const Sidebar: React.FC<SidebarProps> = ({ stats }) => {
       <Box>
         <Text color="blue">{statusCodesString}</Text>
       </Box>
+
+      <Box marginTop={1}>
+        <Text dimColor>Content Types:</Text>
+      </Box>
+      {Object.entries(stats.contentTypes)
+        .sort(([, a], [, b]) => b - a)
+        .map(([type, count]) => (
+          <Box key={type} justifyContent="space-between">
+            <Text>{type}</Text>
+            <Text color="cyan">{count}</Text>
+          </Box>
+        ))}
     </Box>
   );
 };

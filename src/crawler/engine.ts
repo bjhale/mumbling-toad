@@ -31,6 +31,7 @@ export class CrawlEngine {
     indexableCount: 0,
     nonIndexableCount: 0,
     statusCodes: {},
+    contentTypes: {},
     totalResponseTimeMs: 0,
   };
 
@@ -151,10 +152,41 @@ export class CrawlEngine {
         const statusCategory = `${Math.floor(statusCode / 100)}xx`;
         this.stats.statusCodes[statusCategory] = (this.stats.statusCodes[statusCategory] || 0) + 1;
 
+        const mimeType = contentType.split(';')[0]!.trim();
+        this.stats.contentTypes[mimeType] = (this.stats.contentTypes[mimeType] || 0) + 1;
+
         this.callbacks.onPageCrawled(pageData);
       },
 
       failedRequestHandler: async ({ request, error }) => {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        const mimeMatch = errorMessage.match(/served Content-Type (\S+),.*only .* are allowed/);
+
+        if (mimeMatch) {
+          const contentType = mimeMatch[1]!;
+          const mimeType = contentType.split(';')[0]!.trim();
+          const pageData: PageData = {
+            url: request.url,
+            finalUrl: request.loadedUrl || request.url,
+            statusCode: 200,
+            responseTimeMs: 0,
+            contentType,
+            title: '',
+            h1: '',
+            metaDescription: '',
+            wordCount: 0,
+            isIndexable: false,
+            indexabilityReason: 'non-HTML content',
+          };
+
+          this.pages.push(pageData);
+          this.stats.pagesCrawled++;
+          this.stats.nonIndexableCount++;
+          this.stats.contentTypes[mimeType] = (this.stats.contentTypes[mimeType] || 0) + 1;
+          this.callbacks.onPageCrawled(pageData);
+          return;
+        }
+
         this.stats.errors++;
         this.callbacks.onCrawlError(error as Error, request.url);
       },

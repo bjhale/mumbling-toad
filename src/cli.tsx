@@ -21,8 +21,6 @@ const cli = meow(`
 process.stdout.write('\x1B[2J\x1B[3J\x1B[H');
 const app = render(<App initialUrl={cli.input[0]} />);
 
-process.stdout.write('\x1b[?1000h\x1b[?1006h');
-
 app.waitUntilExit().then(() => {
 	process.stdout.write('\x1b[?1000l\x1b[?1006l');
 	process.stdout.write('\x1B[2J\x1B[3J\x1B[H');
