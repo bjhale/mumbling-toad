@@ -13,9 +13,11 @@ import { exportResults } from './export/index.js';
 import { ConsoleMessage, startCapture, stopCapture } from './console-capture.js';
 import { useMouse } from './hooks/use-mouse.js';
 import { type MouseEvent } from './mouse-parser.js';
+import { type DebugLevel, initDebugLog, closeDebugLog } from './debug-logger.js';
 
 interface AppProps {
   initialUrl?: string;
+  debugLevel?: DebugLevel;
 }
 
 type AppState = 'idle' | 'prompting' | 'crawling' | 'finished';
@@ -34,7 +36,7 @@ const INITIAL_STATS: CrawlStats = {
   pausedDurationMs: 0,
 };
 
-export const App: React.FC<AppProps> = ({ initialUrl }) => {
+export const App: React.FC<AppProps> = ({ initialUrl, debugLevel }) => {
   const { exit } = useApp();
   const { stdout } = useStdout();
   const [state, setState] = useState<AppState>(initialUrl ? 'crawling' : 'prompting');
@@ -217,6 +219,16 @@ export const App: React.FC<AppProps> = ({ initialUrl }) => {
       process.stdout.write('\x1b[?1003l\x1b[?1006l');
     };
   }, [mouseActive]);
+
+  useEffect(() => {
+    if (debugLevel) {
+      initDebugLog(debugLevel);
+    }
+    
+    return () => {
+      closeDebugLog();
+    };
+  }, [debugLevel]);
 
   useEffect(() => {
     startCapture((msg) => {
