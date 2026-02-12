@@ -161,7 +161,7 @@ export const App: React.FC<AppProps> = ({ initialUrl }) => {
     // Cleanup on unmount
     return () => {
       if (engineRef.current) {
-        engineRef.current.stop();
+        engineRef.current.abort();
         engineRef.current = null;
       }
     };
@@ -176,7 +176,7 @@ export const App: React.FC<AppProps> = ({ initialUrl }) => {
 
   const handleShutdown = () => {
     if (engineRef.current) {
-      engineRef.current.stop();
+      engineRef.current.abort();
     }
     
     exit();
@@ -184,12 +184,12 @@ export const App: React.FC<AppProps> = ({ initialUrl }) => {
 
   useEffect(() => {
     const sigintHandler = () => {
-      process.stdout.write('\x1b[?1000l\x1b[?1006l');
+      process.stdout.write('\x1b[?1003l\x1b[?1006l');
       handleShutdown();
     };
     
     const uncaughtHandler = (error: Error) => {
-      process.stdout.write('\x1b[?1000l\x1b[?1006l');
+      process.stdout.write('\x1b[?1003l\x1b[?1006l');
       console.error('Uncaught exception:', error);
       process.exit(1);
     };
@@ -208,12 +208,12 @@ export const App: React.FC<AppProps> = ({ initialUrl }) => {
   const mouseActive = state !== 'prompting' && !optionsOpen && !promptOptionsOpen;
   useEffect(() => {
     if (mouseActive) {
-      process.stdout.write('\x1b[?1000h\x1b[?1006h');
+      process.stdout.write('\x1b[?1003h\x1b[?1006h');
     } else {
-      process.stdout.write('\x1b[?1000l\x1b[?1006l');
+      process.stdout.write('\x1b[?1003l\x1b[?1006l');
     }
     return () => {
-      process.stdout.write('\x1b[?1000l\x1b[?1006l');
+      process.stdout.write('\x1b[?1003l\x1b[?1006l');
     };
   }, [mouseActive]);
 
@@ -250,8 +250,6 @@ export const App: React.FC<AppProps> = ({ initialUrl }) => {
    }, { isActive: state !== 'prompting' && !optionsOpen });
 
   const handleMouse = (event: MouseEvent) => {
-    if (state !== 'crawling') return;
-
     if (event.type === 'wheel') {
       if (tableRef.current) {
         const delta = event.button === 64 ? -1 : 1;
@@ -259,6 +257,8 @@ export const App: React.FC<AppProps> = ({ initialUrl }) => {
       }
       return;
     }
+
+    if (state !== 'crawling') return;
 
     if (event.type === 'press') {
       const statusBarY = (stdout?.rows || 24) - 2;

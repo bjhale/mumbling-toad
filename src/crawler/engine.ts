@@ -209,6 +209,33 @@ export class CrawlEngine {
     await this.stop();
   }
 
+  /**
+   * Immediate, synchronous abort for user-initiated shutdown (q / Ctrl+C).
+   * Does NOT await Crawlee teardown — the process exits right after.
+   */
+  abort(): void {
+    if (!this.isRunning) return;
+    this.isRunning = false;
+
+    if (this.statsInterval) {
+      clearInterval(this.statsInterval);
+      this.statsInterval = null;
+    }
+
+    if (this.crawler) {
+      try {
+        this.crawler.autoscaledPool?.abort();
+      } catch {
+        /* empty */
+      }
+      this.crawler = null;
+    }
+  }
+
+  /**
+   * Graceful stop — used when the crawl finishes naturally.
+   * Awaits Crawlee teardown so storage is flushed properly.
+   */
   async stop(): Promise<void> {
     if (!this.isRunning) {
       return;
