@@ -8,6 +8,7 @@
     "dev": "tsx src/cli.tsx",
     "build": "tsup src/cli.tsx --format esm --dts",
     "start": "node dist/cli.js",
+    "lint": "eslint . --ext .ts,.tsx",
     "test": "vitest run"
   },
   "keywords": [],
@@ -24,12 +25,18 @@
     "react": "^19.0.0"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@sindresorhus/tsconfig": "^5.0.0",
     "@types/node": "^20.10.0",
     "cheerio": "^1.2.0",
+    "eslint": "^10.0.0",
+    "eslint-plugin-react": "^7.37.5",
+    "globals": "^17.3.0",
+    "jiti": "^2.6.1",
     "tsup": "^8.0.0",
     "tsx": "^4.7.0",
     "typescript": "^5.2.0",
+    "typescript-eslint": "^8.55.0",
     "vitest": "^4.0.18"
   }
 }
