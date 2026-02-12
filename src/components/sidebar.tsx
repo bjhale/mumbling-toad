@@ -15,7 +15,9 @@ const formatDuration = (ms: number): string => {
 };
 
 export const Sidebar: React.FC<SidebarProps> = ({ stats }) => {
-  const elapsedMs = stats.startTime > 0 ? Date.now() - stats.startTime : 0;
+  const elapsedMs = stats.startTime > 0
+    ? Date.now() - stats.startTime - stats.pausedDurationMs
+    : 0;
   const elapsedSeconds = elapsedMs / 1000;
   const pagesPerSecond = elapsedSeconds > 0 ? (stats.pagesCrawled / elapsedSeconds).toFixed(1) : '0.0';
   const avgResponseTime = stats.pagesCrawled > 0 

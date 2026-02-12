@@ -31,6 +31,7 @@ const INITIAL_STATS: CrawlStats = {
   statusCodes: {},
   contentTypes: {},
   totalResponseTimeMs: 0,
+  pausedDurationMs: 0,
 };
 
 export const App: React.FC<AppProps> = ({ initialUrl }) => {

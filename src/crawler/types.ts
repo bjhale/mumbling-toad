@@ -76,6 +76,9 @@ export interface CrawlStats {
 
   /** Sum of all responseTimeMs values for crawled pages */
   totalResponseTimeMs: number;
+
+  /** Total time spent paused in milliseconds (used to freeze elapsed/pages-per-second while paused) */
+  pausedDurationMs: number;
 }
 
 /**

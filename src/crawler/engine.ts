@@ -22,6 +22,7 @@ export class CrawlEngine {
   private pages: PageData[] = [];
   private isRunning = false;
   private _isPaused = false;
+  private pausedAt = 0;
   private stats: CrawlStats = {
     pagesCrawled: 0,
     pagesInQueue: 0,
@@ -33,6 +34,7 @@ export class CrawlEngine {
     statusCodes: {},
     contentTypes: {},
     totalResponseTimeMs: 0,
+    pausedDurationMs: 0,
   };
 
   constructor(
@@ -61,13 +63,17 @@ export class CrawlEngine {
   pause(): void {
     if (!this.isRunning || this._isPaused) return;
     this._isPaused = true;
-    // Fire-and-forget — do NOT await
+    this.pausedAt = Date.now();
     this.crawler?.autoscaledPool?.pause();
   }
 
   resume(): void {
     if (!this._isPaused) return;
     this._isPaused = false;
+    if (this.pausedAt > 0) {
+      this.stats.pausedDurationMs += Date.now() - this.pausedAt;
+      this.pausedAt = 0;
+    }
     this.crawler?.autoscaledPool?.resume();
   }
 
@@ -201,7 +207,11 @@ export class CrawlEngine {
         this.stats.pagesInQueue = queueInfo?.pendingRequestCount || 0;
         this.stats.uniqueUrlsFound = crawlerStats.requestsFinished + crawlerStats.requestsFailed + (queueInfo?.pendingRequestCount || 0);
 
-        this.callbacks.onStatsUpdate({ ...this.stats });
+        const activePausedMs = this.pausedAt > 0 ? Date.now() - this.pausedAt : 0;
+        this.callbacks.onStatsUpdate({
+          ...this.stats,
+          pausedDurationMs: this.stats.pausedDurationMs + activePausedMs,
+        });
       }
     }, 500);
 
