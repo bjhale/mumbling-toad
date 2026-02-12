@@ -182,4 +182,62 @@ describe('mouse-parser', () => {
 			});
 		});
 	});
+
+	describe('string input (Ink runtime path)', () => {
+		it('should detect valid SGR mouse sequence from string', () => {
+			expect(isMouseSequence('\x1b[<0;10;5M')).toBe(true);
+		});
+
+		it('should reject non-mouse string', () => {
+			expect(isMouseSequence('\x1b[A')).toBe(false);
+		});
+
+		it('should reject plain string', () => {
+			expect(isMouseSequence('hello')).toBe(false);
+		});
+
+		it('should reject short string', () => {
+			expect(isMouseSequence('\x1b[')).toBe(false);
+		});
+
+		it('should parse wheel up from string', () => {
+			const event = parseMouseEvent('\x1b[<64;40;20M');
+
+			expect(event).toEqual<MouseEvent>({
+				button: 64,
+				x: 40,
+				y: 20,
+				type: 'wheel',
+				modifiers: { shift: false, alt: false, ctrl: false },
+			});
+		});
+
+		it('should parse wheel down from string', () => {
+			const event = parseMouseEvent('\x1b[<65;10;5M');
+
+			expect(event).toEqual<MouseEvent>({
+				button: 65,
+				x: 10,
+				y: 5,
+				type: 'wheel',
+				modifiers: { shift: false, alt: false, ctrl: false },
+			});
+		});
+
+		it('should parse left click from string', () => {
+			const event = parseMouseEvent('\x1b[<0;15;8M');
+
+			expect(event).toEqual<MouseEvent>({
+				button: 0,
+				x: 15,
+				y: 8,
+				type: 'press',
+				modifiers: { shift: false, alt: false, ctrl: false },
+			});
+		});
+
+		it('should return null for invalid string', () => {
+			expect(parseMouseEvent('not a mouse event')).toBeNull();
+		});
+	});
 });

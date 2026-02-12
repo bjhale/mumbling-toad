@@ -22,13 +22,13 @@ process.stdout.write('\x1B[2J\x1B[3J\x1B[H');
 const app = render(<App initialUrl={cli.input[0]} />);
 
 app.waitUntilExit().then(() => {
-	process.stdout.write('\x1b[?1000l\x1b[?1006l');
+	process.stdout.write('\x1b[?1003l\x1b[?1006l');
 	process.stdout.write('\x1B[2J\x1B[3J\x1B[H');
 });
 
 process.on('exit', () => {
 	try {
-		process.stdout.write('\x1b[?1000l\x1b[?1006l');
+		process.stdout.write('\x1b[?1003l\x1b[?1006l');
 	} catch (e) {
 	}
 });
