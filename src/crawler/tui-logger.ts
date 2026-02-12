@@ -1,4 +1,5 @@
 import { Logger, LogLevel } from 'crawlee';
+import type { DebugLevel } from '../debug-logger.js';
 
 type TuiLoggerCallback = (level: string, message: string) => void;
 
@@ -24,12 +25,12 @@ const formatException = (exception?: Error): string => {
 };
 
 export class TuiLogger extends Logger {
-  constructor(private callback: TuiLoggerCallback) {
+  constructor(private callback: TuiLoggerCallback, private minLevel: LogLevel = LogLevel.WARNING) {
     super();
   }
 
   _log(level: LogLevel, message: string, data?: unknown, exception?: Error): void {
-    if (level > LogLevel.WARNING) {
+    if (level > this.minLevel) {
       return;
     }
 
@@ -43,6 +44,19 @@ export class TuiLogger extends Logger {
   }
 }
 
-export const createTuiLogger = (callback: TuiLoggerCallback): TuiLogger => {
-  return new TuiLogger(callback);
+export const createTuiLogger = (callback: TuiLoggerCallback, minLevel?: LogLevel): TuiLogger => {
+  return new TuiLogger(callback, minLevel);
 };
+
+export function debugLevelToCrawlee(level: DebugLevel): LogLevel {
+  switch (level) {
+    case 'debug':
+      return LogLevel.DEBUG; // 5
+    case 'info':
+      return LogLevel.INFO; // 4
+    case 'warning':
+      return LogLevel.WARNING; // 3
+    case 'error':
+      return LogLevel.ERROR; // 1
+  }
+}
