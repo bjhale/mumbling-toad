@@ -3,7 +3,7 @@
  */
 
 import { CheerioCrawler, EnqueueStrategy, Configuration, log } from 'crawlee';
-import { createTuiLogger } from './tui-logger.js';
+import { createTuiLogger, debugLevelToCrawlee } from './tui-logger.js';
 import type {
   CrawlOptions,
   OnPageCrawled,
@@ -15,6 +15,7 @@ import type {
 } from './types.js';
 import { extractSeoData } from './extractor.js';
 import { normalizeUrl } from '../utils.js';
+import type { DebugLevel } from '../debug-logger.js';
 
 export class CrawlEngine {
   private crawler: CheerioCrawler | null = null;
@@ -45,13 +46,21 @@ export class CrawlEngine {
       onCrawlComplete: OnCrawlComplete;
       onCrawlError: OnCrawlError;
       onLogMessage?: (level: string, message: string) => void;
+      debugLevel?: DebugLevel;
     }
   ) {
     Configuration.getGlobalConfig().set('persistStorage', false);
-    log.setLevel(log.LEVELS.OFF);
+    
+    if (this.callbacks.debugLevel) {
+      const crawleeLevel = debugLevelToCrawlee(this.callbacks.debugLevel);
+      log.setLevel(crawleeLevel);
+    } else {
+      log.setLevel(log.LEVELS.OFF);
+    }
 
     if (this.callbacks.onLogMessage) {
-      const logger = createTuiLogger(this.callbacks.onLogMessage);
+      const minLevel = this.callbacks.debugLevel ? debugLevelToCrawlee(this.callbacks.debugLevel) : undefined;
+      const logger = createTuiLogger(this.callbacks.onLogMessage, minLevel);
       log.setOptions({ logger });
      }
    }

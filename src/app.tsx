@@ -13,7 +13,7 @@ import { exportResults } from './export/index.js';
 import { ConsoleMessage, startCapture, stopCapture } from './console-capture.js';
 import { useMouse } from './hooks/use-mouse.js';
 import { type MouseEvent } from './mouse-parser.js';
-import { type DebugLevel, initDebugLog, closeDebugLog } from './debug-logger.js';
+import { type DebugLevel, initDebugLog, closeDebugLog, writeDebugLog } from './debug-logger.js';
 
 interface AppProps {
   initialUrl?: string;
@@ -121,16 +121,17 @@ export const App: React.FC<AppProps> = ({ initialUrl, debugLevel }) => {
      setState('finished');
    };
 
-  const onCrawlError: OnCrawlError = (error, url) => {
-    const message = `Error crawling ${url}: ${error.message}`;
-    setErrorMessage(message);
-    setTimeout(() => setErrorMessage(''), 5000);
-    setConsoleMessages(prev => [...prev, {
-      timestamp: Date.now(),
-      level: 'error',
-      message,
-    } as ConsoleMessage].slice(-100));
-  };
+   const onCrawlError: OnCrawlError = (error, url) => {
+     const message = `Error crawling ${url}: ${error.message}`;
+     writeDebugLog('error', message);
+     setErrorMessage(message);
+     setTimeout(() => setErrorMessage(''), 5000);
+     setConsoleMessages(prev => [...prev, {
+       timestamp: Date.now(),
+       level: 'error',
+       message,
+     } as ConsoleMessage].slice(-100));
+   };
 
   // Create and start engine when entering crawling state
   useEffect(() => {
@@ -149,12 +150,21 @@ export const App: React.FC<AppProps> = ({ initialUrl, debugLevel }) => {
               : normalized === 'warning'
                 ? 'warn'
                 : 'log';
+            
+            // Write to debug log file
+            const debugLogLevel = normalized === 'error' ? 'error'
+              : normalized === 'warning' ? 'warning'
+              : normalized === 'info' ? 'info'
+              : 'debug';
+            writeDebugLog(debugLogLevel, message);
+            
             setConsoleMessages(prev => [...prev, {
               timestamp: Date.now(),
               level: mappedLevel,
               message,
             }].slice(-100));
           },
+          debugLevel,
         }
       );
 
@@ -233,6 +243,10 @@ export const App: React.FC<AppProps> = ({ initialUrl, debugLevel }) => {
   useEffect(() => {
     startCapture((msg) => {
       setConsoleMessages(prev => [...prev, msg].slice(-100));
+      
+      // Write to debug log file
+      const debugLogLevel = msg.level === 'log' ? 'info' : msg.level === 'warn' ? 'warning' : 'error';
+      writeDebugLog(debugLogLevel, msg.message);
     });
 
     return () => {
