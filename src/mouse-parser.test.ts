@@ -181,6 +181,32 @@ describe('mouse-parser', () => {
 				modifiers: { shift: true, alt: false, ctrl: false },
 			});
 		});
+
+		it('should parse motion event (no button held)', () => {
+			const data = Buffer.from('\x1b[<35;10;5M');
+			const event = parseMouseEvent(data);
+
+			expect(event).toEqual<MouseEvent>({
+				button: 3,
+				x: 10,
+				y: 5,
+				type: 'move',
+				modifiers: { shift: false, alt: false, ctrl: false },
+			});
+		});
+
+		it('should parse motion event with left button held (drag)', () => {
+			const data = Buffer.from('\x1b[<32;20;15M');
+			const event = parseMouseEvent(data);
+
+			expect(event).toEqual<MouseEvent>({
+				button: 0,
+				x: 20,
+				y: 15,
+				type: 'move',
+				modifiers: { shift: false, alt: false, ctrl: false },
+			});
+		});
 	});
 
 	describe('string input (Ink runtime path)', () => {

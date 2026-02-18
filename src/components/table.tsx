@@ -22,7 +22,7 @@ export const Table = forwardRef<TableHandle, TableProps>(({ pages, isFocused, te
   const [scrollOffset, setScrollOffset] = useState(0);
 
   const TABLE_HEIGHT = availableHeight !== undefined ? availableHeight : (stdout ? stdout.rows - 6 : 20);
-  const VISIBLE_ROWS = Math.max(1, TABLE_HEIGHT - 3);
+  const VISIBLE_ROWS = Math.max(1, TABLE_HEIGHT - 5);
   const TABLE_WIDTH = Math.floor(terminalWidth * 0.7);
   const SCROLLBAR_WIDTH = 1;
 
@@ -148,7 +148,10 @@ export const Table = forwardRef<TableHandle, TableProps>(({ pages, isFocused, te
 
   return (
     <Box flexDirection="column" width={TABLE_WIDTH} height={TABLE_HEIGHT} overflowY="hidden">
-       <Box borderStyle="single" borderTop={false} borderLeft={false} borderRight={false} borderColor="gray">
+       <Box justifyContent="center">
+         <Text bold underline={isFocused}>Crawled Pages</Text>
+       </Box>
+       <Box borderStyle="single" borderTop={false} borderLeft={false} borderRight={false} borderColor={isFocused ? 'cyan' : 'gray'}>
           <Box flexGrow={1}>
             {visibleColumns.map(col => (
               <Box key={col.key} width={col.minWidth} paddingX={1}>

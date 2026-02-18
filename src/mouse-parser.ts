@@ -9,7 +9,7 @@ export interface MouseEvent {
   button: number; // 0=left, 1=middle, 2=right, 64=wheelUp, 65=wheelDown
   x: number; // 1-based column
   y: number; // 1-based row
-  type: "press" | "release" | "wheel";
+  type: "press" | "release" | "move" | "wheel";
   modifiers: {
     shift: boolean;
     alt: boolean;
@@ -78,6 +78,18 @@ export function parseMouseEvent(data: Buffer | string): MouseEvent | null {
       x,
       y,
       type: "wheel",
+      modifiers,
+    };
+  }
+
+  // Check if motion event (bit 5 set) — sent by \x1b[?1003h "any event" tracking
+  if (button & 32) {
+    const baseButton = button & 3;
+    return {
+      button: baseButton,
+      x,
+      y,
+      type: "move",
       modifiers,
     };
   }

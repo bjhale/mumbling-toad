@@ -5,7 +5,7 @@
   "type": "module",
   "main": "dist/cli.js",
   "scripts": {
-    "dev": "tsx src/cli.tsx",
+    "dev": "tsx src/cli.tsx -d debug",
     "build": "tsup src/cli.tsx --format esm --dts",
     "start": "node dist/cli.js",
     "lint": "eslint . --ext .ts,.tsx",

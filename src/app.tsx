@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Box, useApp, useInput, useStdout, Text as InkText } from 'ink';
 import { Prompt } from './components/prompt.js';
-import { Sidebar } from './components/sidebar.js';
+import { Sidebar, type SidebarHandle } from './components/sidebar.js';
 import { StatusBar } from './components/status-bar.js';
 import { Table, type TableHandle } from './components/table.js';
 import { Options } from './components/options.js';
@@ -52,18 +52,20 @@ export const App: React.FC<AppProps> = ({ initialUrl, debugLevel }) => {
    const [consoleMessages, setConsoleMessages] = useState<ConsoleMessage[]>([]);
    const [consoleOpen, setConsoleOpen] = useState(false);
    const [isPaused, setIsPaused] = useState(false);
+   const [focusedPanel, setFocusedPanel] = useState<'table' | 'sidebar'>('table');
   
    const engineRef = useRef<CrawlEngine | null>(null);
    const pageBuffer = useRef<PageData[]>([]);
    const flushIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
    const tableRef = useRef<TableHandle | null>(null);
+   const sidebarRef = useRef<SidebarHandle | null>(null);
 
   const termWidth = stdout?.columns || 120;
   const MIN_WIDTH = 100;
 
   const CONSOLE_PANEL_HEIGHT = 11;
   const STATUS_BAR_HEIGHT = 2;
-  const tableAvailableHeight = (stdout?.rows || 24) - 6;
+  const tableAvailableHeight = (stdout?.rows || 24) - STATUS_BAR_HEIGHT;
 
   if (termWidth < MIN_WIDTH && state !== 'prompting') {
     return (
@@ -190,9 +192,13 @@ export const App: React.FC<AppProps> = ({ initialUrl, debugLevel }) => {
   const handleShutdown = () => {
     if (engineRef.current) {
       engineRef.current.abort();
+      engineRef.current = null;
     }
     
     exit();
+    process.stdout.write('\x1b[?1003l\x1b[?1006l');
+    process.stdout.write('\x1B[2J\x1B[3J\x1B[H');
+    process.exit(0);
   };
 
   useEffect(() => {
@@ -254,11 +260,14 @@ export const App: React.FC<AppProps> = ({ initialUrl, debugLevel }) => {
     };
   }, []);
 
-   useInput((input, _key) => {
-     if (input === 'q') {
-       handleShutdown();
-     }
-     if (input === 'e' && pages.length > 0) {
+   useInput((input, key) => {
+      if (input === 'q') {
+        handleShutdown();
+      }
+      if (key.tab) {
+        setFocusedPanel(prev => prev === 'table' ? 'sidebar' : 'table');
+      }
+      if (input === 'e' && pages.length > 0) {
        const { csvPath } = exportResults(pages, stats, targetUrl || 'crawl');
        const csvName = csvPath.split('/').pop();
        setExportMessage(`Exported to ${csvName}`);
@@ -278,8 +287,10 @@ export const App: React.FC<AppProps> = ({ initialUrl, debugLevel }) => {
 
   const handleMouse = (event: MouseEvent) => {
     if (event.type === 'wheel') {
-      if (tableRef.current) {
-        const delta = event.button === 64 ? -1 : 1;
+      const delta = event.button === 64 ? -1 : 1;
+      if (focusedPanel === 'sidebar' && sidebarRef.current) {
+        sidebarRef.current.adjustScroll(delta);
+      } else if (tableRef.current) {
         tableRef.current.adjustScroll(delta);
       }
       return;
@@ -290,49 +301,40 @@ export const App: React.FC<AppProps> = ({ initialUrl, debugLevel }) => {
     if (event.type === 'press') {
       const statusBarY = (stdout?.rows || 24) - 2;
       if (event.y >= statusBarY) {
-        const hintsText = `↑↓ Scroll | ←→ Columns | ${isPaused ? 'p Resume' : 'p Pause'} | c Console | o Options | e Export | q Quit`;
-        
-        if (hintsText.includes('p Resume') || hintsText.includes('p Pause')) {
-          const pauseIndex = hintsText.indexOf('p ');
-          if (event.x >= pauseIndex + 30 && event.x <= pauseIndex + 50) {
-            if (engineRef.current) {
-              engineRef.current.togglePause();
-              setIsPaused(engineRef.current.isPaused);
-            }
-          }
+        const hintsText = `↑↓ Scroll | ←→ Columns | Tab Switch | ${isPaused ? 'p Resume' : 'p Pause'} | c Console | o Options | e Export | q Quit`;
+
+        const MOUSE_ORIGIN = 1;
+        const STATUS_BAR_PADDING = 1;
+        let baseX = MOUSE_ORIGIN + STATUS_BAR_PADDING;
+        if (consoleMessages.length > 0) {
+          const badgeText = `[C: ${consoleMessages.length}]`;
+          const badgePad = consoleOpen ? 0 : 1;
+          baseX += badgeText.length + badgePad;
         }
-        
-        if (hintsText.includes('c Console')) {
-          const consoleIndex = hintsText.indexOf('c Console');
-          if (event.x >= consoleIndex + 30 && event.x <= consoleIndex + 50) {
-            setConsoleOpen(prev => !prev);
-          }
-        }
-        
-        if (hintsText.includes('o Options')) {
-          const optionsIndex = hintsText.indexOf('o Options');
-          if (event.x >= optionsIndex + 30 && event.x <= optionsIndex + 50) {
-            setOptionsOpen(true);
-          }
-        }
-        
-        if (hintsText.includes('e Export')) {
-          const exportIndex = hintsText.indexOf('e Export');
-          if (event.x >= exportIndex + 30 && event.x <= exportIndex + 50) {
-            if (pages.length > 0) {
-              const { csvPath } = exportResults(pages, stats, targetUrl || 'crawl');
-              const csvName = csvPath.split('/').pop();
-              setExportMessage(`Exported to ${csvName}`);
-              setTimeout(() => setExportMessage(''), 3000);
-            }
-          }
-        }
-        
-        if (hintsText.includes('q Quit')) {
-          const quitIndex = hintsText.indexOf('q Quit');
-          if (event.x >= quitIndex + 30) {
-            handleShutdown();
-          }
+
+        const hitX = event.x - baseX;
+
+        const hitLabel = (label: string): boolean => {
+          const start = hintsText.indexOf(label);
+          if (start === -1) return false;
+          return hitX >= start && hitX < start + label.length;
+        };
+
+        const pauseLabel = isPaused ? 'p Resume' : 'p Pause';
+        if (hitLabel(pauseLabel) && engineRef.current) {
+          engineRef.current.togglePause();
+          setIsPaused(engineRef.current.isPaused);
+        } else if (hitLabel('c Console')) {
+          setConsoleOpen(prev => !prev);
+        } else if (hitLabel('o Options')) {
+          setOptionsOpen(true);
+        } else if (hitLabel('e Export') && pages.length > 0) {
+          const { csvPath } = exportResults(pages, stats, targetUrl || 'crawl');
+          const csvName = csvPath.split('/').pop();
+          setExportMessage(`Exported to ${csvName}`);
+          setTimeout(() => setExportMessage(''), 3000);
+        } else if (hitLabel('q Quit')) {
+          handleShutdown();
         }
       }
     }
@@ -387,11 +389,13 @@ export const App: React.FC<AppProps> = ({ initialUrl, debugLevel }) => {
     );
   }
 
+  const termHeight = stdout?.rows || 24;
+
   return (
-    <Box flexDirection="column" width="100%" height="100%">
+    <Box flexDirection="column" width="100%" height={termHeight}>
       <Box flexDirection="row" flexGrow={1} overflowY="hidden">
-        <Table ref={tableRef} pages={pages} isFocused={!optionsOpen && true} terminalWidth={termWidth} availableHeight={tableAvailableHeight} />
-        <Sidebar stats={stats} />
+        <Table ref={tableRef} pages={pages} isFocused={!optionsOpen && focusedPanel === 'table'} terminalWidth={termWidth} availableHeight={tableAvailableHeight} />
+        <Sidebar ref={sidebarRef} stats={stats} isFocused={focusedPanel === 'sidebar'} availableHeight={tableAvailableHeight} />
       </Box>
 
        {consoleOpen && (

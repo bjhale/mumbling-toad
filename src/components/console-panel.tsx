@@ -1,6 +1,6 @@
-import React from 'react';
-import { Box, Text, useStdout } from 'ink';
-import type { ConsoleMessage } from '../console-capture.js';
+import React from "react";
+import { Box, Text, useStdout } from "ink";
+import type { ConsoleMessage } from "../console-capture.js";
 
 interface ConsolePanelProps {
   messages: ConsoleMessage[];
@@ -10,16 +10,14 @@ interface ConsolePanelProps {
 
 const DEFAULT_MAX_HEIGHT = 8;
 const HEADER_HEIGHT = 3;
-const HEADER_TITLE = 'Console';
+const HEADER_TITLE = "Console";
 const MESSAGE_PADDING = 1;
 const MESSAGE_SPACING = 1;
 const LEVEL_WIDTH = 6;
 
 const formatTimestamp = (timestamp: number): string => {
   const date = new Date(timestamp);
-  return date
-    .toTimeString()
-    .split(' ')[0];
+  return date.toTimeString().split(" ")[0];
 };
 
 const truncate = (value: string, maxLength: number): string => {
@@ -29,14 +27,14 @@ const truncate = (value: string, maxLength: number): string => {
   return `${value.slice(0, Math.max(0, maxLength - 1))}…`;
 };
 
-const getLevelColor = (level: ConsoleMessage['level']): string => {
-  if (level === 'error') {
-    return 'red';
+const getLevelColor = (level: ConsoleMessage["level"]): string => {
+  if (level === "error") {
+    return "red";
   }
-  if (level === 'warn') {
-    return 'yellow';
+  if (level === "warn") {
+    return "yellow";
   }
-  return 'white';
+  return "white";
 };
 
 export const ConsolePanel: React.FC<ConsolePanelProps> = ({
@@ -55,11 +53,15 @@ export const ConsolePanel: React.FC<ConsolePanelProps> = ({
   const messageWindow = messages.slice(-contentHeight);
   const headerPadding = MESSAGE_PADDING * 2;
   const headerCount = messages.length.toString();
-  const headerSpace = terminalWidth - HEADER_TITLE.length - headerCount.length - headerPadding;
+  const headerSpace =
+    terminalWidth - HEADER_TITLE.length - headerCount.length - headerPadding;
   const timestampWidth = 8;
   const spacing = MESSAGE_SPACING * 2;
   const contentWidth = terminalWidth - headerPadding;
-  const messageWidth = Math.max(10, contentWidth - timestampWidth - LEVEL_WIDTH - spacing);
+  const messageWidth = Math.max(
+    10,
+    contentWidth - timestampWidth - LEVEL_WIDTH - spacing,
+  );
 
   return (
     <Box
@@ -67,6 +69,7 @@ export const ConsolePanel: React.FC<ConsolePanelProps> = ({
       width="100%"
       borderStyle="single"
       borderColor="gray"
+      backgroundColor={"black"}
       paddingX={MESSAGE_PADDING}
       paddingY={0}
     >
@@ -74,7 +77,11 @@ export const ConsolePanel: React.FC<ConsolePanelProps> = ({
         <Text bold>{HEADER_TITLE}</Text>
         <Text dimColor>{headerCount}</Text>
       </Box>
-      <Box flexDirection="column" height={contentHeight + HEADER_HEIGHT - 2}>
+      <Box
+        backgroundColor={"black"}
+        flexDirection="column"
+        height={contentHeight + HEADER_HEIGHT - 2}
+      >
         {messageWindow.map((message) => (
           <Box key={`${message.timestamp}-${message.message}`}>
             <Text dimColor>{formatTimestamp(message.timestamp)}</Text>
