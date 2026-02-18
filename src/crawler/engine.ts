@@ -151,6 +151,7 @@ export class CrawlEngine {
             wordCount: 0,
             isIndexable: false,
             indexabilityReason: 'non-HTML content',
+            canonical: '',
           };
         }
 
@@ -192,6 +193,7 @@ export class CrawlEngine {
             wordCount: 0,
             isIndexable: false,
             indexabilityReason: 'non-HTML content',
+            canonical: '',
           };
 
           this.pages.push(pageData);

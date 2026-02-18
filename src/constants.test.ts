@@ -23,26 +23,26 @@ describe("constants", () => {
   });
 
   describe("COLUMN_DEFINITIONS", () => {
-    it("should have exactly 9 column definitions", () => {
-      expect(COLUMN_DEFINITIONS).toHaveLength(9);
+    it("should have exactly 10 column definitions", () => {
+      expect(COLUMN_DEFINITIONS).toHaveLength(10);
     });
 
-    it("should have priorities from 1 to 9 with no gaps", () => {
+    it("should have priorities from 1 to 10 with no gaps", () => {
       const priorities = COLUMN_DEFINITIONS.map((col) => col.priority);
       const sortedPriorities = [...priorities].sort((a, b) => a - b);
-      expect(sortedPriorities).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9]);
+      expect(sortedPriorities).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
     });
 
     it("should have no duplicate priorities", () => {
       const priorities = COLUMN_DEFINITIONS.map((col) => col.priority);
       const uniquePriorities = new Set(priorities);
-      expect(uniquePriorities.size).toBe(9);
+      expect(uniquePriorities.size).toBe(10);
     });
 
     it("should have unique column keys", () => {
       const keys = COLUMN_DEFINITIONS.map((col) => col.key);
       const uniqueKeys = new Set(keys);
-      expect(uniqueKeys.size).toBe(9);
+      expect(uniqueKeys.size).toBe(10);
     });
 
     it("should have url as first priority column", () => {
@@ -59,6 +59,7 @@ describe("constants", () => {
         "statusCode",
         "title",
         "isIndexable",
+        "canonical",
         "responseTimeMs",
         "h1",
         "wordCount",

@@ -63,11 +63,11 @@ export function extractSeoData(
   }
   
   // Check 3: Canonical mismatch
+  const canonicalHref = $('link[rel="canonical"]').attr('href') || '';
   if (isIndexable) {
-    const canonicalUrl = $('link[rel="canonical"]').attr('href');
-    if (canonicalUrl) {
+    if (canonicalHref) {
       // Normalize URLs for comparison
-      const normalizedCanonical = normalizeUrl(canonicalUrl, request.loadedUrl || request.url);
+      const normalizedCanonical = normalizeUrl(canonicalHref, request.loadedUrl || request.url);
       const normalizedCurrent = normalizeUrl(request.loadedUrl || request.url);
       
       if (normalizedCanonical !== normalizedCurrent) {
@@ -92,6 +92,7 @@ export function extractSeoData(
     indexabilityReason,
     contentType,
     statusCode,
+    canonical: canonicalHref,
   };
 }
 

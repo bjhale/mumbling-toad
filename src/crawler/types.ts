@@ -41,6 +41,9 @@ export interface PageData {
 
   /** Content-Type header value (e.g., "text/html; charset=utf-8") */
   contentType: string;
+
+  /** Canonical URL from <link rel="canonical"> (empty string if not present) */
+  canonical: string;
 }
 
 /**
