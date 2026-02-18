@@ -133,9 +133,15 @@ export const Table = forwardRef<TableHandle, TableProps>(({ pages, isFocused, te
     }
 
     switch (colKey) {
-      case 'url':
-        content = <Text {...textProps} wrap="truncate">{truncate(String(val), width)}</Text>;
+      case 'url': {
+        let displayUrl = String(val);
+        try {
+          const parsed = new URL(displayUrl);
+          displayUrl = parsed.pathname + parsed.search + parsed.hash;
+        } catch {}
+        content = <Text {...textProps} wrap="truncate">{truncate(displayUrl, width)}</Text>;
         break;
+      }
       case 'statusCode': {
         const code = Number(val);
         if (!isSelected) {
