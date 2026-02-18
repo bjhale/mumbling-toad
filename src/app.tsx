@@ -5,6 +5,7 @@ import { Sidebar, type SidebarHandle } from './components/sidebar.js';
 import { StatusBar } from './components/status-bar.js';
 import { Table, type TableHandle } from './components/table.js';
 import { Options } from './components/options.js';
+import { PageDetail } from './components/page-detail.js';
 import { ConsolePanel } from './components/console-panel.js';
 import { CrawlEngine } from './crawler/engine.js';
 import { CrawlStats, PageData, CrawlOptions, OnPageCrawled, OnStatsUpdate, OnCrawlComplete, OnCrawlError } from './crawler/types.js';
@@ -53,6 +54,7 @@ export const App: React.FC<AppProps> = ({ initialUrl, debugLevel }) => {
    const [consoleOpen, setConsoleOpen] = useState(false);
    const [isPaused, setIsPaused] = useState(false);
    const [focusedPanel, setFocusedPanel] = useState<'table' | 'sidebar'>('table');
+   const [detailPage, setDetailPage] = useState<PageData | null>(null);
   
    const engineRef = useRef<CrawlEngine | null>(null);
    const pageBuffer = useRef<PageData[]>([]);
@@ -283,7 +285,7 @@ export const App: React.FC<AppProps> = ({ initialUrl, debugLevel }) => {
        engineRef.current.togglePause();
        setIsPaused(engineRef.current.isPaused);
      }
-   }, { isActive: state !== 'prompting' && !optionsOpen });
+   }, { isActive: state !== 'prompting' && !optionsOpen && !detailPage });
 
   const handleMouse = (event: MouseEvent) => {
     if (event.type === 'wheel') {
@@ -389,12 +391,22 @@ export const App: React.FC<AppProps> = ({ initialUrl, debugLevel }) => {
     );
   }
 
+  if (detailPage) {
+    return (
+      <PageDetail
+        page={detailPage}
+        onClose={() => setDetailPage(null)}
+        isActive={!!detailPage}
+      />
+    );
+  }
+
   const termHeight = stdout?.rows || 24;
 
   return (
     <Box flexDirection="column" width="100%" height={termHeight}>
       <Box flexDirection="row" flexGrow={1} overflowY="hidden">
-        <Table ref={tableRef} pages={pages} isFocused={!optionsOpen && focusedPanel === 'table'} terminalWidth={termWidth} availableHeight={tableAvailableHeight} />
+        <Table ref={tableRef} pages={pages} isFocused={!optionsOpen && focusedPanel === 'table'} terminalWidth={termWidth} availableHeight={tableAvailableHeight} onSelect={(page) => setDetailPage(page)} />
         <Sidebar ref={sidebarRef} stats={stats} isFocused={focusedPanel === 'sidebar'} availableHeight={tableAvailableHeight} />
       </Box>
 

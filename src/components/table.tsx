@@ -9,13 +9,14 @@ export interface TableProps {
   isFocused: boolean;
   terminalWidth: number;
   availableHeight?: number;
+  onSelect?: (page: PageData) => void;
 }
 
 export interface TableHandle {
   adjustScroll: (delta: number) => void;
 }
 
-export const Table = forwardRef<TableHandle, TableProps>(({ pages, isFocused, terminalWidth, availableHeight }, ref) => {
+export const Table = forwardRef<TableHandle, TableProps>(({ pages, isFocused, terminalWidth, availableHeight, onSelect }, ref) => {
   const { stdout } = useStdout();
   const [selectedRowIndex, setSelectedRowIndex] = useState(0);
   const [columnOffset, setColumnOffset] = useState(0);
@@ -87,6 +88,9 @@ export const Table = forwardRef<TableHandle, TableProps>(({ pages, isFocused, te
     else if (input === 'f' && !autoFollow) {
       setAutoFollow(true);
       setSelectedRowIndex(pages.length - 1);
+    }
+    else if (key.return && pages[selectedRowIndex] && onSelect) {
+      onSelect(pages[selectedRowIndex]);
     }
   }, { isActive: isFocused });
 
