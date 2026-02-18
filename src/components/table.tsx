@@ -20,6 +20,7 @@ export const Table = forwardRef<TableHandle, TableProps>(({ pages, isFocused, te
   const [selectedRowIndex, setSelectedRowIndex] = useState(0);
   const [columnOffset, setColumnOffset] = useState(0);
   const [scrollOffset, setScrollOffset] = useState(0);
+  const [autoFollow, setAutoFollow] = useState(true);
 
   const TABLE_HEIGHT = availableHeight !== undefined ? availableHeight : (stdout ? stdout.rows - 6 : 20);
   const VISIBLE_ROWS = Math.max(1, TABLE_HEIGHT - 5);
@@ -57,10 +58,15 @@ export const Table = forwardRef<TableHandle, TableProps>(({ pages, isFocused, te
     if (!isFocused) return;
 
     if (key.upArrow) {
+      setAutoFollow(false);
       setSelectedRowIndex(prev => Math.max(0, prev - 1));
     }
     else if (key.downArrow) {
-      setSelectedRowIndex(prev => Math.min(pages.length - 1, prev + 1));
+      setSelectedRowIndex(prev => {
+        const next = Math.min(pages.length - 1, prev + 1);
+        if (next >= pages.length - 1) setAutoFollow(true);
+        return next;
+      });
     }
     else if (key.leftArrow) {
       setColumnOffset(prev => Math.max(0, prev - 1));
@@ -71,9 +77,15 @@ export const Table = forwardRef<TableHandle, TableProps>(({ pages, isFocused, te
       }
     }
     else if (input === 'g') {
+      setAutoFollow(false);
       setSelectedRowIndex(0);
     }
     else if (input === 'G') {
+      setAutoFollow(true);
+      setSelectedRowIndex(pages.length - 1);
+    }
+    else if (input === 'f' && !autoFollow) {
+      setAutoFollow(true);
       setSelectedRowIndex(pages.length - 1);
     }
   }, { isActive: isFocused });
@@ -86,9 +98,21 @@ export const Table = forwardRef<TableHandle, TableProps>(({ pages, isFocused, te
     }
   }, [selectedRowIndex, scrollOffset, VISIBLE_ROWS]);
 
+  // Auto-follow: snap to bottom when new pages arrive
+  useEffect(() => {
+    if (autoFollow && pages.length > 0) {
+      setSelectedRowIndex(pages.length - 1);
+    }
+  }, [autoFollow, pages.length]);
+
   useImperativeHandle(ref, () => ({
     adjustScroll: (delta: number) => {
-      setSelectedRowIndex(prev => Math.max(0, Math.min(pages.length - 1, prev + delta)));
+      if (delta < 0) setAutoFollow(false);
+      setSelectedRowIndex(prev => {
+        const next = Math.max(0, Math.min(pages.length - 1, prev + delta));
+        if (next >= pages.length - 1) setAutoFollow(true);
+        return next;
+      });
     }
   }), [pages.length]);
 
@@ -110,7 +134,7 @@ export const Table = forwardRef<TableHandle, TableProps>(({ pages, isFocused, te
 
     switch (colKey) {
       case 'url':
-        content = <Text {...textProps}>{truncate(String(val), width)}</Text>;
+        content = <Text {...textProps} wrap="truncate">{truncate(String(val), width)}</Text>;
         break;
       case 'statusCode': {
         const code = Number(val);
@@ -120,7 +144,7 @@ export const Table = forwardRef<TableHandle, TableProps>(({ pages, isFocused, te
             else if (code >= 400) textProps.color = 'red';
             else textProps.color = 'white';
         }
-        content = <Text {...textProps}>{val}</Text>;
+        content = <Text {...textProps} wrap="truncate">{val}</Text>;
         break;
       }
       case 'isIndexable': {
@@ -128,18 +152,18 @@ export const Table = forwardRef<TableHandle, TableProps>(({ pages, isFocused, te
         if (!isSelected) {
             textProps.color = val ? 'green' : 'red';
         }
-        content = <Text {...textProps}>{text}</Text>;
+        content = <Text {...textProps} wrap="truncate">{text}</Text>;
         break;
       }
       default:
-        content = <Text {...textProps}>{truncate(String(val), width)}</Text>;
+        content = <Text {...textProps} wrap="truncate">{truncate(String(val), width)}</Text>;
     }
 
      return (
        <Box width={width} key={colKey} paddingX={1}>
-         {content}
-       </Box>
-     );
+          {content}
+        </Box>
+      );
   };
 
   const visiblePages = pages.slice(scrollOffset, scrollOffset + VISIBLE_ROWS);
@@ -167,7 +191,7 @@ export const Table = forwardRef<TableHandle, TableProps>(({ pages, isFocused, te
          const isSelected = globalIndex === selectedRowIndex;
          
          return (
-           <Box key={page.url}>
+            <Box key={page.url} height={1}>
              <Box flexGrow={1}>
                {visibleColumns.map(col => renderCell(page, col.key, col.minWidth, isSelected))}
              </Box>
@@ -202,6 +226,7 @@ export const Table = forwardRef<TableHandle, TableProps>(({ pages, isFocused, te
           {visiblePages.length > 0 ? `${scrollOffset + 1}-${Math.min(pages.length, scrollOffset + VISIBLE_ROWS)} of ${pages.length}` : 'No pages'}
           {hasHiddenRight ? ' ►' : '  '}
         </Text>
+        {autoFollow ? <Text color="cyan">⬇ Following</Text> : <Text dimColor>f Follow</Text>}
       </Box>
     </Box>
   );
